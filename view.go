@@ -24,12 +24,12 @@ const (
 func (a *App) view(c *ui.Context) {
 	a.services = c.Services()
 	a.runPosted()
-	// The scroll bars the settings ask for, in everything that scrolls;
-	// a thumb keeps its width while it is dragged.
+	// The scroll bars the settings ask for, in everything that scrolls:
+	// their width, their thumbs' least length (MyGo's ScrollbarStyle),
+	// and whether they always show.
 	a.uiTheme = *c.Theme()
 	ap := &a.eff.Appearance
-	a.uiTheme.ScrollbarWidth, a.uiTheme.ScrollbarMinLength, a.uiTheme.ScrollbarsAlways = ap.ScrollbarWidth, ap.ScrollbarMinLength, is(ap.ScrollbarsAlways)
-	a.uiTheme.ScrollbarKeepsWidth = true
+	a.uiTheme.ScrollbarWidth, a.uiTheme.ScrollbarStyle.MinLength, a.uiTheme.ScrollbarsAlways = ap.ScrollbarWidth, ap.ScrollbarMinLength, is(ap.ScrollbarsAlways)
 	c.SetTheme(&a.uiTheme)
 	a.postMu.Lock()
 	toasts := a.toastQueue

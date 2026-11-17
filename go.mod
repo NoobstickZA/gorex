@@ -20,7 +20,9 @@ require (
 )
 
 require (
+	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.11.0 // indirect
 	github.com/dop251/goja v0.0.0-20261029234554-1329d889cf98 // indirect
@@ -28,6 +30,9 @@ require (
 	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
+	go.digitalxero.dev/rpm v0.3.4 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
@@ -37,6 +42,6 @@ require (
 tool github.com/egoist/mygo/cmd/mygo
 
 // GoRex's MyGo: upstream main and the changes GoRex carries, branch
-// gorex-upstream-2 of the fork. To work on MyGo alongside, replace it with
+// gorex-upstream-3 of the fork. To work on MyGo alongside, replace it with
 // ../mygo in a go.work, which is not committed.
-replace github.com/egoist/mygo => github.com/roelfdiedericks/mygo v0.0.0-20261112004408-bc1c409501ee
+replace github.com/egoist/mygo => github.com/roelfdiedericks/mygo v0.0.0-20261116215702-422e5b825af7
