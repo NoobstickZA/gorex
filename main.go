@@ -184,6 +184,11 @@ func (a *App) open() {
 		// The title bar draws the window's controls (windowControls).
 		opts.TitleBarStyle, opts.Frameless = mygo.TitleBarDefault, true
 	}
+	if roundsOwnCorners {
+		// Outside its rounded corners, the window shows what is behind
+		// it (view).
+		opts.Transparent, opts.BackgroundColor = true, "rgba(0, 0, 0, 0)"
+	}
 	win := mygo.NewWindow(opts)
 	a.win = win
 	a.debugHook()

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
@@ -19,6 +20,9 @@ const (
 	cardR     = 12 // the panes' corners
 	headerH   = 33 // the panes' headers
 	activeFor = 1500 * time.Millisecond
+	// windowR rounds the window's corners where GoRex draws them itself:
+	// on Linux (roundsOwnCorners).
+	windowR = 12
 )
 
 func (a *App) view(c *ui.Context) {
@@ -66,12 +70,29 @@ func (a *App) view(c *ui.Context) {
 	// Over the window's material, the gradient goes translucent, so that
 	// the material shows and a tint still tells the host.
 	vibrant := c.Vibrancy()
-	if vibrant {
+	// On Linux GoRex rounds the window's corners itself, outside which it
+	// is transparent, but while it fills the screen.
+	round := float32(0)
+	if roundsOwnCorners && a.win != nil && !a.win.IsMaximized() && !a.win.IsFullScreen() {
+		round = windowR
+	}
+	if vibrant || roundsOwnCorners {
 		c.Root().Background(ui.Transparent)
 	} else {
 		c.Root().Background(k.bgBottom)
 	}
-	ui.Column(c).Fill().Draw(func(p *ui.Painter, r ui.Rect) { paintBackground(p, r, k, vibrant) }).Children(func() {
+	frame := ui.Column(c).Fill()
+	if round > 0 {
+		frame.Radius(round).Clip()
+	}
+	frame.Draw(func(p *ui.Painter, r ui.Rect) {
+		p.Clip(r, round, func() { paintBackground(p, r, k, vibrant) })
+		if round > 0 {
+			// An edge in place of the frame's shadow, which a window
+			// with transparent corners goes without.
+			p.Stroke(r, k.cardBorder, round, 1)
+		}
+	}).Children(func() {
 		a.titleBar(c, k)
 		ui.Column(c).Grow(1).MinHeight(0).Padding(0, gap, gap, gap).Children(func() {
 			if t := a.tab(); t != nil {
@@ -129,8 +150,16 @@ func (a *App) view(c *ui.Context) {
 }
 
 // ownControls tells that the title bar draws the window's controls: on
-// Windows, whose own would look like none of the rest of it.
-var ownControls = runtime.GOOS == "windows"
+// Windows, whose own would look like none of the rest of it, and on Linux,
+// where the window has no frame of the desktop's (roundsOwnCorners).
+var ownControls = runtime.GOOS == "windows" || roundsOwnCorners
+
+// roundsOwnCorners tells that GoRex rounds the window's corners itself: on
+// Linux, where the corners are the frame's that the desktop draws around
+// a window, which GoRex's own title bar does without. The window is
+// transparent and frameless, and draws its rounded background and an
+// edge for the frame's shadow; MyGo resizes it at its edges.
+const roundsOwnCorners = runtime.GOOS == "linux"
 
 // titleBar draws the title bar under the window's controls: the host,
 // the tabs, and the buttons of the command palette and a new tab.
@@ -143,6 +172,7 @@ func (a *App) titleBar(c *ui.Context, k *colors) {
 		left += 14
 	}
 	ui.Row(c).Height(titleH).Padding(0, max(bar.Right, 10), 0, left).Gap(14).AlignItems(ui.Center).DragWindow().Children(func() {
+		a.windowControls(c, k, true)
 		a.hostChip(c, k)
 		a.tabStrip(c, k)
 		// The title bar between the tabs and the buttons, which drags the
@@ -169,50 +199,76 @@ func (a *App) titleBar(c *ui.Context, k *colors) {
 				a.newTab(a.currentDir())
 			}
 		})
-		a.windowControls(c, k)
+		a.windowControls(c, k, false)
 	})
 }
 
 // windowControls draws the buttons that minimize, maximize and close the
 // window, when it has none of its own: they are the title bar's other
-// buttons, and close's face turns red, as Windows has it.
-func (a *App) windowControls(c *ui.Context, k *colors) {
+// buttons, and close's face turns red, as Windows has it. On Linux they
+// are those the desktop puts in title bars, at their start (start) or at
+// their end, in its order; Windows has all three at the end.
+func (a *App) windowControls(c *ui.Context, k *colors, start bool) {
 	win := a.win
 	if !ownControls || win == nil || win.IsFullScreen() {
 		return
 	}
-	maximized := win.IsMaximized()
-	ui.Row(c).Gap(2).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Box(c).Size(1, 16).Margin(0, 6).Background(k.tabSep)
-		if iconButton(c, k, "minus", "Minimize", 30, 16).Tooltip("Minimize").Clicked() {
-			win.Minimize()
-		}
-		glyph, label := "square", "Maximize"
-		if maximized {
-			glyph, label = "copy", "Restore"
-		}
-		if iconButton(c, k, glyph, label, 30, 13).Tooltip(label).Clicked() {
-			if maximized {
-				win.Unmaximize()
-			} else {
-				win.Maximize()
+	buttons := []string{"minimize", "maximize", "close"}
+	if runtime.GOOS == "linux" {
+		if wb := mygo.Theme.WindowButtons(); !wb.Empty() {
+			buttons = wb.End
+			if start {
+				buttons = wb.Start
 			}
 		}
-		b := ui.Box(c).Size(30, 30).Center().Radius(30 / 2.6).Cursor(ui.CursorPointer).Role(ui.RoleButton).Label("Close").Tooltip("Close")
-		col := k.iconMuted
-		if b.Pressed() {
-			b.Background(closeRed.Alpha(0.8))
-			col = ui.Hex("#ffffff")
-		} else if b.Hovered() {
-			b.Background(closeRed)
-			col = ui.Hex("#ffffff")
+	}
+	if start && runtime.GOOS != "linux" || len(buttons) == 0 {
+		return
+	}
+	maximized := win.IsMaximized()
+	ui.Row(c).Gap(2).AlignItems(ui.Center).Shrink(0).Children(func() {
+		if !start {
+			ui.Box(c).Size(1, 16).Margin(0, 6).Background(k.tabSep)
 		}
-		b.Transition(ui.ElementTransition{Colors: true, Duration: 120 * time.Millisecond})
-		b.Children(func() {
-			ui.Icon(c, icon("x")).Size(17, 17).TextColor(col)
-		})
-		if b.Clicked() {
-			win.Close()
+		for _, name := range buttons {
+			switch name {
+			case "minimize":
+				if iconButton(c.Key(name), k, "minus", "Minimize", 30, 16).Tooltip("Minimize").Clicked() {
+					win.Minimize()
+				}
+			case "maximize":
+				glyph, label := "square", "Maximize"
+				if maximized {
+					glyph, label = "copy", "Restore"
+				}
+				if iconButton(c.Key(name), k, glyph, label, 30, 13).Tooltip(label).Clicked() {
+					if maximized {
+						win.Unmaximize()
+					} else {
+						win.Maximize()
+					}
+				}
+			case "close":
+				b := ui.Box(c.Key(name)).Size(30, 30).Center().Radius(30 / 2.6).Cursor(ui.CursorPointer).Role(ui.RoleButton).Label("Close").Tooltip("Close")
+				col := k.iconMuted
+				if b.Pressed() {
+					b.Background(closeRed.Alpha(0.8))
+					col = ui.Hex("#ffffff")
+				} else if b.Hovered() {
+					b.Background(closeRed)
+					col = ui.Hex("#ffffff")
+				}
+				b.Transition(ui.ElementTransition{Colors: true, Duration: 120 * time.Millisecond})
+				b.Children(func() {
+					ui.Icon(c, icon("x")).Size(17, 17).TextColor(col)
+				})
+				if b.Clicked() {
+					win.Close()
+				}
+			}
+		}
+		if start {
+			ui.Box(c).Size(1, 16).Margin(0, 6).Background(k.tabSep)
 		}
 	})
 }
