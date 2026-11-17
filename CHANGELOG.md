@@ -4,6 +4,25 @@ Each release's version is its heading in this file. The `version` in
 `mygo.json` must match the top heading. Otherwise `make website` refuses
 to build. It also refuses to build a version that is already published.
 
+## 0.1.16
+
+- omp's native view (the Tern Surface Protocol) is now on by default, and
+  no longer marked experimental. If you had turned it off, it is on again
+  once; turn it off in Settings › OMP Settings if you prefer. Tabs that
+  are already open keep how they started; new tabs and panes, and Restart
+  Shell in Pane, use it.
+- On Linux the window has rounded corners, as on macOS and Windows. GoRex
+  draws its own minimize, maximize and close buttons there, in the order
+  your desktop uses.
+- Mermaid diagrams stay sharp at any zoom in the picture viewer. Labels on
+  the arrows of flowcharts no longer have the line running through them.
+- A file that a message names before omp writes it becomes a link once the
+  file exists.
+- Built on a newer MyGo: updates retry when a download fails or stalls,
+  links in the terminal that wrap onto the next line open whole, and
+  drawing is faster in several places. A scroll bar's handle now widens a
+  little while you drag it.
+
 ## 0.1.15
 
 - Files that omp names open with a click. A file name in a tool card
