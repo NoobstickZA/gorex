@@ -132,7 +132,8 @@ func (a *App) tspMedia(c *ui.Context, key *ui.Context, k *colors, p *Pane, n *re
 				if rev == "" {
 					path = file
 				}
-				a.zoomPicture(p, bm, 1, baseName(file)+at, path, nil)
+				bw, bh := bm.Size()
+				a.zoomPicture(p, bm, float32(bw), float32(bh), baseName(file)+at, path)
 			}
 		}
 		return img

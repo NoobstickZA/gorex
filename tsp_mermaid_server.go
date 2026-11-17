@@ -15,5 +15,3 @@ type tspMermaid struct{}
 func (a *App) tspMermaidBlock(c *ui.Context, k *colors, p *Pane, b *markdown.CodeBlockView) {
 	markdown.DefaultCodeBlock(c, b)
 }
-
-func (a *App) sharpenDiagram(v *tspViewer) {}

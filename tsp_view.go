@@ -1582,7 +1582,7 @@ func (a *App) tspNode(c *ui.Context, k *colors, t *Tab, p *Pane, sf *rex.Surface
 						path = hostPathOf(u)
 					}
 				}
-				a.zoomPicture(p, bm, 1, alt, path, nil)
+				a.zoomPicture(p, bm, float32(bw), float32(bh), alt, path)
 			}
 			el = img
 			break

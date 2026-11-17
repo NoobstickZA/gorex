@@ -13,18 +13,14 @@ import (
 // the pointer, up to eight times its own size; dragging it, or scrolling a
 // touchpad, moves it; a double-click goes between fitted and its own size.
 // The keys + and - zoom, 0 fits, 1 shows its own size, the arrows move it.
-// A click beside it, or Escape, closes it. A diagram zoomed past its
-// picture's pixels has the part in view drawn again, sharp
-// (sharpenDiagram).
+// A click beside it, or Escape, closes it. A diagram drawn from its SVG
+// stays sharp at any zoom.
 
 const (
 	zoomMax    = 8   // the largest zoom, of the picture's own size
 	zoomStep   = 1.2 // a wheel's notch, or a key, zooms by as much
 	zoomMargin = 16  // around the picture fitted, in DIPs
 	zoomArrow  = 40  // an arrow key moves the picture by as much, in DIPs
-	// zoomSettle is how long the zoom and the place stay before a
-	// diagram's part in view is drawn again, sharp.
-	zoomSettle = 250 * time.Millisecond
 	// zoomGlide is how long a double-click's or a key's zoom takes.
 	zoomGlide = 150 * time.Millisecond
 )
@@ -33,14 +29,12 @@ const (
 // it shows at, of its own (w, h, in DIPs), and cx, cy its point at the
 // middle of the view, of size vw, vh as last drawn; fit keeps it fitted to
 // the view as the view's size changes. A glide (double-click, keys) moves
-// the view from glideFrom to where it is; sharp is the part of a diagram
-// drawn at a zoom. The picture comes from file path, when it does, which
-// Open File opens.
+// the view from glideFrom to where it is. The picture comes from file
+// path, when it does, which Open File opens.
 type tspViewer struct {
 	pane       *Pane
-	bm         *ui.Bitmap
+	pic        ui.ImageSource
 	name, path string
-	diagram    *tspMermaid
 	w, h       float32
 	fit        bool
 	zoom       float32
@@ -51,30 +45,15 @@ type tspViewer struct {
 	pressed, dragged bool
 	glideFrom        [3]float32
 	glides           int
-	// due counts the changes of zoom and place, which a sharp drawing
-	// waits on to settle.
-	due   int
-	sharp *tspSharp
 }
 
-// tspSharp is the part x, y, w, h of a diagram, in its DIPs, drawn sharp
-// at zoom.
-type tspSharp struct {
-	bm         *ui.Bitmap
-	x, y, w, h float32
-	zoom       float32
-}
-
-// zoomPicture opens the zoom view over pane p on picture bm, whose own
-// size is its pixels over scale, named name, from file path ("" for
-// none); m is its diagram, when it is one.
-func (a *App) zoomPicture(p *Pane, bm *ui.Bitmap, scale float32, name, path string, m *tspMermaid) {
-	if bm == nil {
+// zoomPicture opens the zoom view over pane p on picture pic, whose own
+// size is w by h DIPs, named name, from file path ("" for none).
+func (a *App) zoomPicture(p *Pane, pic ui.ImageSource, w, h float32, name, path string) {
+	if pic == nil || w <= 0 || h <= 0 {
 		return
 	}
-	w, h := bm.Size()
-	a.tspZoom = &tspViewer{pane: p, bm: bm, name: name, path: path, diagram: m,
-		w: float32(w) / scale, h: float32(h) / scale, fit: true, zoom: 1}
+	a.tspZoom = &tspViewer{pane: p, pic: pic, name: name, path: path, w: w, h: h, fit: true, zoom: 1}
 }
 
 // fitZoom is the zoom at which the picture fits the view, at most its own
@@ -140,7 +119,6 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 			v.vw, v.vh = r.W, r.H
 			if !v.fit && v.vw > 0 {
 				v.clamp()
-				a.zoomSettled(v)
 			}
 		}
 		if v.vw <= 0 || v.vh <= 0 {
@@ -177,7 +155,6 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 				return false
 			}
 			v.glideFrom = [3]float32{v.zoom, v.cx, v.cy}
-			a.zoomSettled(v)
 			return true
 		})
 		pressed := stage.Pressed()
@@ -188,7 +165,6 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		if dx, dy, held := stage.Dragged(); held && (dx != 0 || dy != 0) {
 			v.moveBy(-dx, -dy)
 			v.dragged = true
-			a.zoomSettled(v)
 		}
 		if v.w*z > v.vw+0.5 || v.h*z > v.vh+0.5 {
 			stage.Cursor(ui.CursorGrab)
@@ -205,7 +181,6 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 						v.fit = true
 					}
 				})
-				a.zoomSettled(v)
 			}
 		} else if stage.Clicked() && !v.dragged {
 			// Beside the picture: the view closes.
@@ -216,15 +191,11 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		stage.Children(func() {
 			// On the panel's color, for a picture with no background of
 			// its own (a Mermaid diagram's) over the dimmed pane.
-			ui.Image(c.Key("picture"), v.bm).Absolute().Left(left).Top(top).Size(v.w*z, v.h*z).
+			ui.Image(c.Key("picture"), v.pic).Absolute().Left(left).Top(top).Size(v.w*z, v.h*z).
 				Background(k.panel).Radius(6).PassThrough()
-			if s := v.sharp; s != nil && s.zoom == v.zoom && z == v.zoom {
-				ui.Image(c.Key("sharp"), s.bm).Absolute().Left(left+s.x*z).Top(top+s.y*z).Size(s.w*z, s.h*z).PassThrough()
-			}
 		})
 		ui.Row(c).Gap(12).AlignItems(ui.Center).AlignSelf(ui.Center).Shrink(0).Children(func() {
-			bw, bh := v.bm.Size()
-			caption := fmt.Sprintf("%d×%d · %.0f%%", bw, bh, z*100)
+			caption := fmt.Sprintf("%.0f×%.0f · %.0f%%", v.w, v.h, z*100)
 			if v.name != "" {
 				caption = v.name + "  " + caption
 			}
@@ -254,10 +225,7 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 			v.moveBy(0, zoomArrow)
 		case key(0, ui.KeyEscape):
 			closed = true
-		default:
-			return
 		}
-		a.zoomSettled(v)
 	})
 	if open {
 		path := v.path
@@ -269,21 +237,4 @@ func (a *App) surfaceZoom(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		a.tspZoom = nil
 		a.surfacePressed(t, p)
 	}
-}
-
-// zoomSettled has the part of the view's diagram in view drawn sharp once
-// the zoom and the place stay as they are for a moment.
-func (a *App) zoomSettled(v *tspViewer) {
-	if v.diagram == nil {
-		return
-	}
-	v.due++
-	due := v.due
-	time.AfterFunc(zoomSettle, func() {
-		a.laterService(func() {
-			if a.tspZoom == v && v.due == due {
-				a.sharpenDiagram(v)
-			}
-		})
-	})
 }
