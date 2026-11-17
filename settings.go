@@ -44,8 +44,10 @@ type Settings struct {
 // settingsVersion is the document's version: for migrating a field whose
 // meaning changed, on read. 2 moved the Tern Surface Protocol switch from
 // terminal.tsp, the host's only, to omp.tsp; 3 made the transparent
-// terminal background switch an opacity, appearance.backgroundOpacity.
-const settingsVersion = 3
+// terminal background switch an opacity, appearance.backgroundOpacity; 4
+// turned the Tern Surface Protocol on by default, over a switch saved off
+// before then.
+const settingsVersion = 4
 
 type Appearance struct {
 	// Mode is "light", "dark", or "" to follow the system.
@@ -136,9 +138,9 @@ type Terminal struct {
 type OMP struct {
 	// TSP has the host's sessions answer programs that speak the Tern
 	// Surface Protocol, whose surfaces the window then draws over the
-	// terminal, in sessions started after a change. Experimental: see
-	// TSP.md.
-	TSP *bool `json:"tsp,omitempty" kind:"look" label:"Tern Surface Protocol (experimental)" group:"Protocol"`
+	// terminal, in sessions started after a change; on by default (see
+	// TSP.md).
+	TSP *bool `json:"tsp,omitempty" kind:"look" label:"Tern Surface Protocol" group:"Protocol"`
 	// Font and Size are the surfaces' text, the system's UI font when the
 	// font is unset; the interface's other sizes keep their ratios to
 	// Size. MessageSize is the messages' (Markdown, thinking among them)
@@ -252,7 +254,7 @@ var builtin = Settings{
 		Cursor: "block", Blink: on, Scrollback: 10000, Images: 320, CompressScrollback: on, CopyOnSelect: notOnMac, OptionAsAlt: off, Bell: "mark", Identity: "ghostty", StatusNotify: on,
 		CtrlCCopies: onWindows, CtrlVPastes: onWindows, InsertKeys: on, RightClickPastes: onWindows,
 	},
-	OMP: OMP{Size: 13, LineHeight: 1.5, DockWidth: 800, MessageWidth: 960, Spacing: "normal", Motion: on,
+	OMP: OMP{TSP: on, Size: 13, LineHeight: 1.5, DockWidth: 800, MessageWidth: 960, Spacing: "normal", Motion: on,
 		FileClick: "popup", FileCtrlClick: "tab", FileLinks: on},
 	Editor: Editor{
 		LineHeight: 1.5, WrapGuides: "100", SoftWrap: off, DiffLayout: "split", DiffInline: "words",
@@ -344,12 +346,17 @@ func (f field) inherited(host *Settings) bool { return f.kind == "look" && !f.is
 // decodeSettings reads a document, leniently: unknown fields are ignored,
 // missing ones unset. A document before version 2 has the Tern Surface
 // Protocol switch under the terminal; one before 3 a switch for a
-// transparent terminal background, which is an opacity of 0 on, 100 off.
+// transparent terminal background, which is an opacity of 0 on, 100 off;
+// one before 4 a Tern Surface Protocol switch saved off while it was
+// experimental and off by default, which then follows the default, on.
 func decodeSettings(b []byte) (s Settings) {
 	if len(b) == 0 {
 		return s
 	}
 	json.Unmarshal(b, &s)
+	if s.V >= 4 {
+		return s
+	}
 	var old struct {
 		Appearance struct {
 			Transparent *bool `json:"transparent"`
@@ -358,18 +365,20 @@ func decodeSettings(b []byte) (s Settings) {
 			TSP *bool `json:"tsp"`
 		} `json:"terminal"`
 	}
-	if s.V >= 3 || json.Unmarshal(b, &old) != nil {
-		return s
-	}
-	if s.V < 2 && s.OMP.TSP == nil {
-		s.OMP.TSP = old.Terminal.TSP
-	}
-	if t := old.Appearance.Transparent; t != nil && s.Appearance.BackgroundOpacity == nil {
-		opacity := 100
-		if *t {
-			opacity = 0
+	if s.V < 3 && json.Unmarshal(b, &old) == nil {
+		if s.V < 2 && s.OMP.TSP == nil {
+			s.OMP.TSP = old.Terminal.TSP
 		}
-		s.Appearance.BackgroundOpacity = &opacity
+		if t := old.Appearance.Transparent; t != nil && s.Appearance.BackgroundOpacity == nil {
+			opacity := 100
+			if *t {
+				opacity = 0
+			}
+			s.Appearance.BackgroundOpacity = &opacity
+		}
+	}
+	if s.OMP.TSP != nil && !*s.OMP.TSP {
+		s.OMP.TSP = nil
 	}
 	return s
 }

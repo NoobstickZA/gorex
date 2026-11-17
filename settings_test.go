@@ -74,22 +74,31 @@ func TestEffective(t *testing.T) {
 }
 
 // A document before version 2 has the Tern Surface Protocol switch under
-// the terminal, where only a host set it: read, it is omp.tsp, on or off;
-// a document that has omp.tsp keeps it.
+// the terminal, where only a host set it: read, it is omp.tsp; a document
+// that has omp.tsp keeps it. Before version 4, when the switch was off by
+// default, one saved off follows the default, now on; from 4 an off is
+// the user's and stays.
 func TestDecodeSettingsMovesTSP(t *testing.T) {
 	for _, c := range []struct {
 		doc  string
 		want *bool
 	}{
 		{`{"v":1,"terminal":{"tsp":true,"size":14}}`, on},
-		{`{"terminal":{"tsp":false}}`, off},
+		{`{"terminal":{"tsp":false}}`, nil},
 		{`{"v":1,"terminal":{"size":14}}`, nil},
 		{`{"v":2,"omp":{"tsp":true},"terminal":{"tsp":false}}`, on},
+		{`{"v":3,"omp":{"tsp":false}}`, nil},
+		{`{"v":3,"omp":{"tsp":true}}`, on},
+		{`{"v":4,"omp":{"tsp":false}}`, off},
 	} {
 		s := decodeSettings([]byte(c.doc))
 		if (s.OMP.TSP == nil) != (c.want == nil) || s.OMP.TSP != nil && *s.OMP.TSP != *c.want {
 			t.Errorf("%s: omp.tsp %v, want %v", c.doc, s.OMP.TSP, c.want)
 		}
+	}
+	// Unset over the Defaults' new default: on for new sessions.
+	if eff := effective(&builtin, &Settings{}); !shellOptions(&eff).TSP {
+		t.Error("the default does not ask new sessions for the protocol")
 	}
 	// Saved again, it is the current version's.
 	var sent map[string]map[string]any
