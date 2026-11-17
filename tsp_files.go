@@ -28,8 +28,11 @@ type filePeek struct {
 
 // tspCodeLinker makes the code of a pane's messages that names a file of
 // the session's folder a link to it (file://), while the settings say so:
-// code that looks like a file's name is looked up on the host once, in
-// the background, and links once it is known to be a file.
+// code that looks like a file's name is looked up on the host, in the
+// background, and links once it is known to be a file. A name not found
+// is asked about again a while after, as an agent names a file before it
+// writes it: after 2 seconds, then twice as long each time, up to a
+// minute.
 func (a *App) tspCodeLinker(p *Pane) func(code string) (string, bool) {
 	if !is(a.eff.OMP.FileLinks) {
 		return nil
@@ -40,21 +43,32 @@ func (a *App) tspCodeLinker(p *Pane) func(code string) (string, bool) {
 		}
 		file := mediaPath(p, code)
 		if a.fileKnown == nil || len(a.fileKnown) > 4096 {
-			a.fileKnown = map[string]bool{}
+			a.fileKnown = map[string]*fileAnswer{}
 		}
-		isFile, asked := a.fileKnown[file]
-		if !asked {
-			a.fileKnown[file] = false
+		ans := a.fileKnown[file]
+		if ans == nil {
+			ans = &fileAnswer{wait: fileAskFirst}
+			a.fileKnown[file] = ans
+		}
+		if !ans.file && !ans.asking && time.Now().After(ans.next) {
+			ans.asking = true
 			client := a.client
 			go func() {
 				fi, err := client.Stat(file)
-				if err == nil && !fi.Dir {
-					a.laterService(func() { a.fileKnown[file] = true })
-				}
+				found := err == nil && !fi.Dir
+				a.laterService(func() {
+					ans.asking, ans.file = false, found
+					if !found {
+						// A frame then, which asks again if the name
+						// still shows.
+						ans.next = time.Now().Add(ans.wait)
+						time.AfterFunc(ans.wait, func() { a.laterService(func() {}) })
+						ans.wait = min(2*ans.wait, fileAskMost)
+					}
+				})
 			}()
-			return "", false
 		}
-		if !isFile {
+		if !ans.file {
 			return "", false
 		}
 		slashed := strings.ReplaceAll(file, `\`, "/")
@@ -64,6 +78,22 @@ func (a *App) tspCodeLinker(p *Pane) func(code string) (string, bool) {
 		return (&url.URL{Scheme: "file", Path: slashed}).String(), true
 	}
 }
+
+// fileAnswer is what the host said of a name a message gives as code:
+// whether it is a file; while not, whether it is being asked, when to ask
+// again, and how long to wait after that.
+type fileAnswer struct {
+	file, asking bool
+	next         time.Time
+	wait         time.Duration
+}
+
+// fileAskFirst is how long a name not found waits to be asked about
+// again, at first; fileAskMost at most.
+const (
+	fileAskFirst = 2 * time.Second
+	fileAskMost  = time.Minute
+)
 
 // looksLikeFile reports whether code may name a file: one word with a
 // folder in it, or a name with an extension of letters and digits, at

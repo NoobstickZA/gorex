@@ -385,9 +385,9 @@ type App struct {
 	// peek is the file shown in the popup over a pane, nil for none
 	// (tsp_files.go).
 	peek *filePeek
-	// fileKnown is what the host said of the paths messages name as code:
-	// a file or not, false too while it is asked (tspCodeLinker).
-	fileKnown map[string]bool
+	// fileKnown is what the host said of the paths messages name as code
+	// (tspCodeLinker).
+	fileKnown map[string]*fileAnswer
 	// tspPal is the palette of the surface being drawn, the variant for
 	// the window's appearance (surfaceColors); tspPalettes the programs'
 	// palettes parsed, by palette and appearance.
