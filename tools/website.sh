@@ -162,7 +162,7 @@ github() {
 	lname=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')
 	for p in $(echo "$SITE_PLATFORMS" | tr , ' '); do
 		t=$(echo "$p" | tr / -)
-		v=$(curl -fsS "$SITE_URL/updates/update-$t.json" | sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p') || die "could not read the site's manifest for $p"
+		v=$(curl -fsS "$SITE_URL/updates/update-$t.json" | sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' | head -n 1) || die "could not read the site's manifest for $p"
 		[ "$v" = "$VERSION" ] || die "$p: the site has ${v:-no version}, not $VERSION. Publish it first (make publish)."
 		case $t in
 		windows-amd64) files="$lname-setup-$VERSION-amd64.exe" ;;
