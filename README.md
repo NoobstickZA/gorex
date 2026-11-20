@@ -346,16 +346,20 @@ go run ./tools/remotepayload  # the servers for ssh hosts, in resources/remote (
 CLI together.
 
 The app keeps its state in its data directory: the server's socket and log,
-`layout.json`, the host's `settings.json` and this PC's `defaults.json`. The
-built app uses `~/Library/Application Support/GoRex`, and `mygo dev` uses
-`GoRex Dev`. This way, development never touches the sessions of the app you
-use. Set `GOREX_DIR` to use another directory.
+`layout.json`, the host's `settings.json` and this PC's `defaults.json`. It
+is `%APPDATA%\GoRex` on Windows, `~/Library/Application Support/GoRex` on
+macOS and `~/.config/GoRex` on Linux. `make dev` builds use the same
+directory as the installed app, so they share its sessions. `go tool mygo
+dev` uses `GoRex Dev` instead, which keeps development apart. Set
+`GOREX_DIR` to use another directory.
 
-Sessions outlive the app, but not a rebuild. A development build replaces a
-server that an older build started. This ends the server's sessions, which
-then start again in the same directories. The same applies to servers on
-ssh hosts: the first connection after a rebuild copies the new build to the
-host and restarts the `GoRex Dev` server there, which ends its sessions.
+Sessions outlive the app, and also a new build. When a different build
+connects to a session server, the server replaces its own program in place
+and keeps its sessions. This also happens on ssh hosts: the first
+connection after a rebuild copies the new build to the host, and its server
+replaces itself. Windows can't replace a running server. There, a
+development build restarts this PC's server, which ends its sessions. A
+release keeps the old server running until you use Restart Session Server….
 
 ### Windows
 
