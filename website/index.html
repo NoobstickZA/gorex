@@ -6,7 +6,7 @@
 <title>GoRex: a terminal with tabs, panes and sessions that keep running</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
-<meta name="description" content="GoRex is a native terminal with tabs and split panes. Its sessions keep running after you quit the app, on this computer or on your servers over ssh.">
+<meta name="description" content="GoRex is a native terminal with tabs and split panes. Its sessions keep running after you quit the app, on this computer or on your servers over ssh. It speaks the Tern Surface Protocol, so the coding agent omp looks and works as it does in Tern.">
 <style>
   :root {
     --bg: #0f1115;
@@ -55,7 +55,7 @@
 <body>
 <main>
   <div class="brand"><img src="icon.png" alt=""><h1>GoRex</h1></div>
-  <p class="tagline">A terminal with tabs and split panes whose sessions keep running. Quit it, open it again, and everything is where you left it.</p>
+  <p class="tagline">A terminal with tabs and split panes whose sessions keep running. Quit it, open it again, and everything is where you left it. Made for the coding agent <a href="https://omp.sh">omp</a>, which looks and works as it does in <a href="https://stencil.so/tern">Tern</a>.</p>
 
   <div class="download">
     <div class="tabs" role="tablist">
@@ -68,13 +68,24 @@
 
   <img class="shot" src="screenshot.png" alt="GoRex running omp, with the settings sheet open next to the transcript">
 
+  <h2>Made for omp</h2>
+  <p>GoRex speaks the <a href="https://docs.stencil.so/tern/protocol/">Tern Surface Protocol</a> (TSP), as Tern does. Programs that speak it send a description of their screen instead of text, and GoRex draws it with native controls. <a href="https://omp.sh">omp</a> is the main one, and programs built with the <a href="https://github.com/stencil-hq/tern-sdk">Tern SDK</a> work too.</p>
+  <ul class="features">
+    <li><strong>omp as in Tern</strong>: messages, tool calls, pickers, forms, settings, pictures, math and the composer are native controls. The composer floats at the bottom of the pane, and the status line has its charts and hover cards.</li>
+    <li><strong>Diagrams and pictures</strong>: Mermaid diagrams in omp's messages are drawn as diagrams. Click one to open it in a viewer with zoom and pan.</li>
+    <li><strong>Files are links</strong>: a file that omp names opens with a click in a popup over the pane. Ctrl+click (⌘+click on macOS) opens it in an editor tab.</li>
+    <li><strong>On your servers too</strong>: omp running on a server draws natively in the GoRex window on your computer. You can paste a screenshot into its composer over ssh.</li>
+    <li><strong>On by default</strong>: turn it off in Settings › OMP Settings.</li>
+  </ul>
+  <p>To install omp: <code>curl -fsSL https://omp.sh/install | sh</code> (on Windows: <code>irm https://omp.sh/install.ps1 | iex</code>).</p>
+
   <h2>What it does</h2>
   <ul class="features">
     <li><strong>Sessions that stay</strong>: shells run in a separate session server. When you quit GoRex, they keep running, and every tab and pane comes back when you open it again.</li>
     <li><strong>Your servers too</strong>: <code>gorex ssh user@host</code> opens a window with sessions that run on that host. GoRex copies its server to the host over ssh and reconnects if the connection drops.</li>
     <li><strong>Tabs and split panes</strong>. Each pane's header shows its program, directory and status.</li>
     <li><strong>An editor</strong> with a file tree, a list of your git changes, and a Markdown preview.</li>
-    <li><strong>Built for coding agents</strong>: it shows images (Kitty graphics), lets you paste images into programs that accept them, and shows what agents say they are doing.</li>
+    <li><strong>Built for coding agents</strong>: besides omp, it shows images (Kitty graphics), lets you paste images into programs that accept them, and shows what agents say they are doing.</li>
     <li><strong>Native</strong>: built with Go and Ghostty's terminal emulator. The Markdown and file previews use the system's web view.</li>
   </ul>
 
