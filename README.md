@@ -3,9 +3,36 @@
 GoRex is a replica of the [Superlogical Rex](https://www.superlogical.com/updates/public-testing-beginning)
 terminal. It is written in Go with the native UI of [MyGo](https://mygo.egoist.dev)
 and its terminal plugin (libghostty-vt from Ghostty). It uses no webview and
-no cgo, and ships as one app of about 15 MB.
+no cgo, and ships as one app of about 90 MB.
+
+GoRex is made for [omp](https://omp.sh), the coding agent. It speaks the
+Tern Surface Protocol, as [Tern](https://stencil.so/tern) does, so omp looks
+and works in GoRex as it does in Tern. This also works on ssh hosts.
 
 ![GoRex](docs/screenshot.png)
+
+## omp and Tern
+
+Programs that speak the [Tern Surface Protocol](https://docs.stencil.so/tern/protocol/)
+(TSP) send a description of their screen instead of text. GoRex draws it
+with native controls. omp is the main one, and programs built with the
+[Tern SDK](https://github.com/stencil-hq/tern-sdk) work too.
+
+- **omp as in Tern.** Messages, tool calls, pickers, forms, settings,
+  pictures, math and the composer are native controls. The composer floats
+  at the bottom of the pane, and the status line has its charts and hover
+  cards.
+- **Diagrams and pictures.** Mermaid diagrams in omp's messages are drawn
+  as diagrams. Click one to open it in a viewer with zoom and pan.
+- **Files are links.** A file that omp names opens with a click in a popup
+  over the pane. Ctrl+click (⌘+click on macOS) opens it in an editor tab.
+- **On ssh hosts too.** omp running on a server draws natively in the GoRex
+  window on your PC. You can paste a screenshot into its composer over ssh.
+- **On by default.** Turn it off in Settings › OMP Settings. New tabs and
+  panes use the new setting.
+
+To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
+`irm https://omp.sh/install.ps1 | iex`).
 
 ## What it does
 
