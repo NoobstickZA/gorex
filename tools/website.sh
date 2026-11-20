@@ -183,7 +183,9 @@ github() {
 	if t=$(git rev-parse -q --verify "refs/tags/$tag^{commit}"); then
 		[ "$t" = "$rel" ] || die "tag $tag is on $t, not on $rel, the release commit of $VERSION"
 	else
-		git tag -a "$tag" -m "$NAME $VERSION" "$rel"
+		# A plain tag: an annotated one needs the user's identity, which
+		# git can't find from the Makefile's shell on Windows.
+		git tag "$tag" "$rel"
 	fi
 	git push -q fork "refs/tags/$tag"
 	if "$GH" release view "$tag" -R "$GITHUB_REPO" >/dev/null 2>&1; then
