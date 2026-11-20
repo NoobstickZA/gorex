@@ -7,7 +7,9 @@
 #   make release       go tool mygo build: every server, the installer
 #   make website       the site's installer and signed updates, in website/
 #   make website-sync  what website built, published to gorex.goclaw.org
-#   make publish       website, then website-sync
+#   make github-release  the published version as a GitHub release, with
+#                      the installers
+#   make publish       website, website-sync, then github-release
 #   make icon          resources/icon.png, redrawn from tools/mkicon/icon.svg
 #   make test, vet, clean
 #
@@ -71,6 +73,8 @@ UPDATE_KEY     ?= $(subst \,/,$(APPDATA))/mygo/update-keys/mygo-update.key
 MAC_HOST       ?= rodent@192.168.0.224
 MAC_DIR        ?= dev/gorex-build/gorex
 RSYNC          ?= rsync
+GITHUB_REPO    ?= roelfdiedericks/gorex
+GH             ?= gh
 ifeq ($(GOOS),windows)
 SSH         ?= C:/Windows/System32/OpenSSH/ssh.exe -o BatchMode=yes -o ConnectTimeout=10
 # MSYS rsync cannot talk through Windows OpenSSH: it uses MSYS ssh with the
@@ -86,7 +90,7 @@ endif
 # subshell of the recipe's shell: in make's Windows port, a shell that
 # shell starts gets none of the environment, which go needs.
 SITE_VARS := NAME VERSION SITE_URL SITE_PLATFORMS SITE_BUILD UPDATE_KEY MAC_HOST MAC_DIR SSH \
-	SITE_HOST SITE_DIR SITE_OWNER RSYNC RSYNC_SSH
+	SITE_HOST SITE_DIR SITE_OWNER RSYNC RSYNC_SSH GITHUB_REPO GH
 SITE_ARGS = $(foreach v,$(SITE_VARS),'$(v)=$($(v))')
 
 # The resources of this platform, and those of every platform but the
@@ -125,7 +129,7 @@ endif
 $(info [make] goals: $(or $(MAKECMDGOALS),dev) (make $(MAKE_VERSION), $(PLATFORM)))
 $(info [make] app: $(NAME) $(VERSION) ($(IDENT)) -> $(EXE))
 
-.PHONY: dev run release version website website-sync publish icon test vet clean FORCE
+.PHONY: dev run release version website website-sync github-release publish icon test vet clean FORCE
 
 dev: $(EXE) $(DEV_COM) $(DEV)/remote $(PLAT_RES) $(TOP_RES)
 	$(total)
@@ -171,7 +175,8 @@ version:
 
 # website builds what gorex.goclaw.org serves into website/, for each
 # platform whose published version is older (darwin and linux on the Mac); see
-# tools/website.sh. website-sync publishes it; publish does both.
+# tools/website.sh. website-sync publishes it; github-release then makes
+# the version a GitHub release with the installers; publish does all three.
 website: version $(CONPTY) $(CLI_COM)
 	$(call run,(set -- build $(SITE_ARGS); . ./tools/website.sh))
 	$(total)
@@ -180,8 +185,13 @@ website-sync:
 	$(call run,(set -- sync $(SITE_ARGS); . ./tools/website.sh))
 	$(total)
 
+github-release: version
+	$(call run,(set -- github $(SITE_ARGS); . ./tools/website.sh))
+	$(total)
+
 publish: website
 	@$(MAKE) --no-print-directory website-sync
+	@$(MAKE) --no-print-directory github-release
 
 test:
 	$(call run,go test ./...)

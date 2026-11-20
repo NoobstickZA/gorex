@@ -1,6 +1,7 @@
 #!/bin/sh
 # website.sh builds and publishes gorex.goclaw.org: the Makefile's
 # website target runs "website.sh build", website-sync "website.sh sync",
+# github-release "website.sh github",
 # with the settings below as NAME=value arguments. The Makefile runs it
 # in a subshell of its recipe's shell ("(set -- build ...; . website.sh)"),
 # as on Windows a shell started from there gets no environment.
@@ -15,6 +16,7 @@
 #                     update key is in its mygo configuration directory
 #   SSH               ssh, for the Mac
 #   SITE_HOST, SITE_DIR, SITE_OWNER, RSYNC, RSYNC_SSH   where sync uploads
+#   GITHUB_REPO, GH   the GitHub repository github releases to, and gh
 #
 # build builds the platforms whose published version is older than
 # VERSION, refusing one whose published version is newer, and stages the
@@ -23,7 +25,8 @@
 # under a name that stays). sync uploads it: updates/ and download/ only
 # add and replace, the manifests last, so that apps never see a manifest
 # whose archive is missing; the rest is mirrored, but for ISPConfig's
-# error/, stats/ and robots.txt.
+# error/, stats/ and robots.txt. github makes the version a release on
+# GitHub, with the installers only, once the site has it.
 set -eu
 
 die() {
@@ -142,6 +145,56 @@ sync() {
 	echo "website: published to $SITE_URL"
 }
 
+# github makes VERSION a release on GitHub (GITHUB_REPO), once the site
+# has it on every platform: tag vVERSION on the commit that set mygo.json
+# to VERSION (the release commit, which the fork must have), pushed to the
+# fork; the version's section of CHANGELOG.md as its notes; and as its
+# files the installers that website/updates has from make website, Linux's
+# install.sh, and their SHA256SUMS. Run again, it uploads them again.
+github() {
+	git fetch -q fork
+	rel=$(git log -1 --format=%H -S"\"version\": \"$VERSION\"" -- mygo.json)
+	[ -n "$rel" ] || die "no commit sets mygo.json's version to $VERSION"
+	git merge-base --is-ancestor "$rel" fork/master || die "the fork does not have $rel, the release commit of $VERSION. Push it first."
+	out="$SITE_BUILD-github"
+	rm -rf "$out"
+	mkdir -p "$out"
+	lname=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')
+	for p in $(echo "$SITE_PLATFORMS" | tr , ' '); do
+		t=$(echo "$p" | tr / -)
+		v=$(curl -fsS "$SITE_URL/updates/update-$t.json" | sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p') || die "could not read the site's manifest for $p"
+		[ "$v" = "$VERSION" ] || die "$p: the site has ${v:-no version}, not $VERSION. Publish it first (make publish)."
+		case $t in
+		windows-amd64) files="$lname-setup-$VERSION-amd64.exe" ;;
+		darwin-arm64) files="$lname-$VERSION-arm64.dmg" ;;
+		linux-amd64) files="${lname}_${VERSION}_amd64.deb install.sh" ;;
+		*) files="" ;;
+		esac
+		for f in $files; do
+			[ -f "website/updates/$f" ] || die "website/updates/$f is missing. It comes from make website."
+			cp "website/updates/$f" "$out/"
+		done
+	done
+	(cd "$out" && sha256sum -- * >SHA256SUMS)
+	awk -v h="## $VERSION" '{ sub(/\r$/, "") } $0 == h { f = 1; next } f && /^## / { exit } f' CHANGELOG.md >"$out.md"
+	grep -q . "$out.md" || die "CHANGELOG.md has no section for $VERSION"
+
+	tag="v$VERSION"
+	if t=$(git rev-parse -q --verify "refs/tags/$tag^{commit}"); then
+		[ "$t" = "$rel" ] || die "tag $tag is on $t, not on $rel, the release commit of $VERSION"
+	else
+		git tag -a "$tag" -m "$NAME $VERSION" "$rel"
+	fi
+	git push -q fork "refs/tags/$tag"
+	if "$GH" release view "$tag" -R "$GITHUB_REPO" >/dev/null 2>&1; then
+		"$GH" release edit "$tag" -R "$GITHUB_REPO" --title "$NAME $VERSION" --notes-file "$out.md"
+		"$GH" release upload "$tag" -R "$GITHUB_REPO" --clobber "$out"/*
+	else
+		"$GH" release create "$tag" -R "$GITHUB_REPO" --verify-tag --title "$NAME $VERSION" --notes-file "$out.md" "$out"/*
+	fi
+	echo "github: released $tag at https://github.com/$GITHUB_REPO/releases/tag/$tag"
+}
+
 cmd=${1:-}
 [ $# -gt 0 ] && shift
 for a in "$@"; do
@@ -153,5 +206,6 @@ done
 case $cmd in
 build) build ;;
 sync) sync ;;
-*) die "usage: website.sh build|sync [NAME=value]..." ;;
+github) github ;;
+*) die "usage: website.sh build|sync|github [NAME=value]..." ;;
 esac
