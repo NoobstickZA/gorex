@@ -56,7 +56,9 @@ build() {
 		manifest="$SITE_URL/updates/update-$t.json"
 		code=$(curl -sS -o "$SITE_BUILD.json" -w '%{http_code}' "$manifest") || die "could not read $manifest"
 		if [ "$code" = 200 ]; then
-			v=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$SITE_BUILD.json")
+			# The manifest's own version is the first: those after it are
+			# of the releases before it.
+			v=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$SITE_BUILD.json" | head -n 1)
 			if [ "$v" = "$VERSION" ]; then
 				echo "website: $p: $VERSION is already published"
 				continue
