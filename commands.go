@@ -38,7 +38,9 @@ type command struct {
 var (
 	cmdNewTab      = command{Title: "New Tab", Accel: "CmdOrCtrl+T", Keys: "⌘T", Other: ctrlShift(ui.KeyT), Run: func(a *App) { a.newTab(a.currentDir()) }}
 	cmdSplitRight  = command{Title: "Split Right", Accel: "CmdOrCtrl+D", Keys: "⌘D", Other: ctrlShift(ui.KeyD), Run: func(a *App) { a.split(false) }}
-	cmdSplitDown   = command{Title: "Split Down", Accel: "CmdOrCtrl+Shift+D", Keys: "⇧⌘D", Other: ctrlShift(ui.KeyE), Run: func(a *App) { a.split(true) }}
+	cmdSplitDown   = command{Title: "Split Down", Accel: "CmdOrCtrl+Shift+D", Keys: "⇧⌘D", Other: ctrlShift(ui.KeyMinus), Run: func(a *App) { a.split(true) }}
+	// The file panel beside a terminal tab's panes, as Tern's.
+	cmdToggleFiles = command{Title: "Show Files", Accel: "CmdOrCtrl+Shift+E", Keys: "⇧⌘E", Other: ctrlShift(ui.KeyE), Run: func(a *App) { a.toggleFiles() }, Shown: func(a *App) bool { return a.tab() != nil && a.tab().Kind == paneTerminal }}
 	cmdClosePane   = command{Title: "Close Pane", Accel: "CmdOrCtrl+W", Keys: "⌘W", Other: ctrlShift(ui.KeyW), Run: func(a *App) { a.closeFocused() }}
 	cmdCloseTab    = command{Title: "Close Tab", Accel: "CmdOrCtrl+Shift+W", Keys: "⇧⌘W", Run: func(a *App) { a.closeActiveTab() }}
 	cmdZoom        = command{Title: "Zoom Pane", Accel: "CmdOrCtrl+Shift+Enter", Keys: "⇧⌘↩", Other: ctrlShift(ui.KeyEnter), Run: func(a *App) { a.toggleZoom() }}
@@ -94,7 +96,7 @@ var (
 
 // paletteCommands are those the command palette lists, before the tabs.
 var paletteCommands = []*command{
-	&cmdNewTab, &cmdNewEditorTab, &cmdSplitRight, &cmdSplitDown, &cmdZoom, &cmdEqualize, &cmdClosePane, &cmdCloseTab,
+	&cmdNewTab, &cmdNewEditorTab, &cmdToggleFiles, &cmdSplitRight, &cmdSplitDown, &cmdZoom, &cmdEqualize, &cmdClosePane, &cmdCloseTab,
 	&cmdNextTab, &cmdPrevTab, &cmdRenameTab,
 	&cmdSave, &cmdToggleChanges, &cmdTogglePreview, &cmdSoftWrap, &cmdReloadFile, &cmdRefreshFiles, &cmdChangeRoot,
 	&cmdFocusLeft, &cmdFocusRight, &cmdFocusUp, &cmdFocusDown,
@@ -228,6 +230,7 @@ func (a *App) menu() *mygo.Menu {
 			item(&cmdPalette),
 			item(&cmdPalette2),
 			mygo.Separator(),
+			item(&cmdToggleFiles),
 			item(&cmdZoom),
 			item(&cmdEqualize),
 			mygo.Separator(),
@@ -317,21 +320,27 @@ func (a *App) startRename() {
 }
 
 func (a *App) clearFocused() {
-	if t := a.tab(); t != nil && t.Focus != nil && t.Focus.term != nil {
+	t := a.tab()
+	if t == nil {
+		return
+	}
+	if p := t.treeFocus(); p != nil && p.term != nil {
 		// Clear the scrollback and the screen, and have the shell draw
 		// its prompt again, as Command-K does in Terminal.
-		t.Focus.term.Feed([]byte("\x1b[H\x1b[2J\x1b[3J"))
-		if t.Focus.info.Idle {
-			t.Focus.term.Send([]byte{0x0c})
+		p.term.Feed([]byte("\x1b[H\x1b[2J\x1b[3J"))
+		if p.info.Idle {
+			p.term.Send([]byte{0x0c})
 		}
 	}
 }
 
-// restartFocused ends the focused pane's session and starts a shell in
-// its place, in the same directory.
+// restartFocused ends the focused terminal's session and starts a shell
+// in its place, in the same directory.
 func (a *App) restartFocused() {
-	if t := a.tab(); t != nil && t.Focus != nil {
-		a.restartPane(t.Focus)
+	if t := a.tab(); t != nil {
+		if p := t.treeFocus(); p != nil && p.Kind == paneTerminal {
+			a.restartPane(p)
+		}
 	}
 }
 

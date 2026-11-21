@@ -305,14 +305,15 @@ func iconButton(c *ui.Context, k *colors, name, label string, size, iconSize flo
 	return b
 }
 
-// tabContent lays out the panes of a tab, or the one zoomed; an editor
-// tab's file browser on the left, with a divider, and its tree.
+// tabContent lays out the panes of a tab, or the one zoomed; the file
+// browser on the left, an editor tab's or a terminal tab's file panel,
+// with a divider, and the tree.
 func (a *App) tabContent(c *ui.Context, k *colors, t *Tab) {
 	if t.Zoom != nil {
 		a.paneCard(c, k, t, t.Zoom).Grow(1)
 		return
 	}
-	if t.Kind != paneEditor || t.Browser == nil {
+	if !t.showsFiles() {
 		a.node(c, k, t, t.Root).Grow(1)
 		return
 	}

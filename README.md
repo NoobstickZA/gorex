@@ -270,6 +270,23 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
     modified, **A** added, **D** deleted, **R** renamed, **U** untracked,
     **C** conflict. A folder shows the strongest mark inside it. Ignored
     files are dimmed.
+- **The file panel** (⇧⌘E / Ctrl+Shift+E, or Show Files in the palette). A
+  terminal tab can show the host's files on its left, as Tern does.
+  - The panel opens on the focused terminal's folder and follows it: after
+    a `cd` in the shell, it moves to the new folder. It waits while a
+    program runs, and moves once the shell is back at its prompt.
+  - The pin in its header keeps the folder you are in. Click the pin again
+    to follow the terminal again. Choosing a folder yourself (Change Root…,
+    Pin as Root) also pins it.
+  - Click a file to show it in the popup over the terminal. Click a folder
+    to open or close it.
+  - Right-click a file or folder for Open in Popup, Open in Editor Tab, New
+    Tab Here, Split Here, cd Here, Pin as Root, Copy Path, Copy Relative
+    Path, and, on this computer, Reveal in File Explorer (or Finder).
+  - While the terminal runs ssh, mosh, wsl or docker, the panel says that
+    it shows this host's files, not those of that session.
+  - Whether the panel is open, its folder, pin and width come back with the
+    layout.
 - **Settings** (⌘, / Ctrl+,). Settings is a dialog with a sidebar and a
   search over every row.
   - The look of a window follows the host it shows. These settings belong
@@ -296,7 +313,7 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
 | macOS | Windows, Linux | |
 |---|---|---|
 | ⌘T | Ctrl+Shift+T | New tab |
-| ⌘D / ⇧⌘D | Ctrl+Shift+D / Ctrl+Shift+E | Split right / down |
+| ⌘D / ⇧⌘D | Ctrl+Shift+D / Ctrl+Shift+− | Split right / down |
 | ⌘W / ⇧⌘W | Ctrl+Shift+W | Close pane / tab |
 | ⇧⌘↩ | Ctrl+Shift+Enter | Zoom the pane |
 | ⌥⌘ arrows | Alt+arrows | Focus the pane in that direction |
@@ -308,6 +325,7 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
 | ⌘K | Ctrl+Shift+K | Clear |
 | ⌘+ ⌘− ⌘0 | Ctrl+= Ctrl+- Ctrl+0 | Text size for this host; ⌘0 returns to the Defaults. ⌘ or Ctrl with the mouse wheel also works |
 | ⇧⌘O | Ctrl+Shift+O | New editor tab |
+| ⇧⌘E | Ctrl+Shift+E | Show or hide the file panel of a terminal tab |
 | ⌘S, ⇧⌘M | Ctrl+S, Ctrl+Shift+M | Save; show the file's changes (in editor tabs) |
 | ⌥⌘Q | | Quit and end all sessions |
 | ⇧⌘B | Ctrl+Shift+B | Send Break, on a serial port |

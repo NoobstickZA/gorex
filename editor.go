@@ -57,10 +57,15 @@ type browserState struct {
 	// noRepo the directories asked about that are in none.
 	repos  []*gitRepo
 	noRepo map[string]bool
+	// pinned keeps a file panel's root as its terminal's folder changes,
+	// and seen the folders open under the roots it followed it to last,
+	// to open them again on going back (followRoot).
+	pinned bool
+	seen   map[string][]string
 }
 
 func (b *browserState) saved(ratio float32) *savedBrowser {
-	s := &savedBrowser{Root: b.root, Ratio: ratio, Hidden: b.hidden}
+	s := &savedBrowser{Root: b.root, Ratio: ratio, Hidden: b.hidden, Pinned: b.pinned}
 	for p := range b.tree.Open.All() {
 		s.Open = append(s.Open, p)
 	}
@@ -210,7 +215,7 @@ func (a *App) newEditorTab(root string) *Tab {
 
 // newBrowserPane makes a tab's file browser from its saved state.
 func (a *App) newBrowserPane(t *Tab, s *savedBrowser) *Pane {
-	b := &browserState{root: s.Root, hidden: s.Hidden, dirs: map[string][]rex.FileInfo{}, loading: map[string]bool{}, errs: map[string]string{}, isDir: map[string]bool{}, row: -1, noRepo: map[string]bool{}}
+	b := &browserState{root: s.Root, hidden: s.Hidden, pinned: s.Pinned, dirs: map[string][]rex.FileInfo{}, loading: map[string]bool{}, errs: map[string]string{}, isDir: map[string]bool{}, row: -1, noRepo: map[string]bool{}}
 	b.isDir[b.root] = true
 	b.tree.Open.Add(b.root)
 	for _, d := range s.Open {
@@ -783,7 +788,7 @@ func (a *App) syncWatches() {
 		}
 	}
 	for _, t := range a.tabs {
-		if bp := t.Browser; bp != nil && bp.files.rootErr == "" {
+		if bp := t.Browser; t.showsFiles() && bp.files.rootErr == "" {
 			b := bp.files
 			want[b.root] = true
 			for d := range b.tree.Open.All() {

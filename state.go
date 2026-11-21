@@ -24,16 +24,19 @@ import (
 )
 
 // Tab is a tab of the window: panes in a tree of splits. An editor tab
-// has a file browser beside the tree, whose panes are editors.
+// has a file browser beside the tree, whose panes are editors; a terminal
+// tab may show one too, the file panel.
 type Tab struct {
 	ID   int
 	Kind paneKind // paneTerminal, or paneEditor for a tab of editors
 	Name string   // the name the user gave it, "" to follow its panes
 	Root *Node
-	// Browser is the file browser of an editor tab, left of the tree, and
-	// BrowserRatio its share of the tab's width.
+	// Browser is the file browser left of the tree, and BrowserRatio its
+	// share of the tab's width: an editor tab's always, a terminal tab's
+	// while FilesOpen, which keeps it, hidden, until it shows again.
 	Browser      *Pane
 	BrowserRatio float32
+	FilesOpen    bool
 	// Focus is the pane with the focus, and Zoom the pane that fills the
 	// tab, when one does.
 	Focus *Pane
@@ -821,9 +824,9 @@ func (a *App) currentDir() string {
 	if a.eff.Shell.StartIn == "home" {
 		return hostHome
 	}
-	if t := a.tab(); t != nil && t.Focus != nil {
-		if d := t.Focus.info.Dir; d != "" {
-			return d
+	if t := a.tab(); t != nil {
+		if p := t.treeFocus(); p != nil && p.info.Dir != "" {
+			return p.info.Dir
 		}
 	}
 	return hostHome
@@ -1068,14 +1071,19 @@ func (a *App) closeTab(t *Tab) {
 	a.removeTab(t)
 }
 
-// allPanes is the panes of the tree and the file browser, when there is
-// one.
+// allPanes is the panes of the tree and the file browser, when it shows.
 func (t *Tab) allPanes() []*Pane {
 	ps := t.panes()
-	if t.Browser != nil {
+	if t.showsFiles() {
 		ps = append([]*Pane{t.Browser}, ps...)
 	}
 	return ps
+}
+
+// showsFiles reports whether the tab shows its file browser: an editor
+// tab always, a terminal tab while its file panel is open.
+func (t *Tab) showsFiles() bool {
+	return t.Browser != nil && (t.Kind == paneEditor || t.FilesOpen)
 }
 
 func (a *App) selectTab(i int) {
@@ -1373,10 +1381,12 @@ type savedLayout struct {
 
 type savedTab struct {
 	// Kind is "" for a terminal tab, "editor" for a tab of editors with
-	// Browser, its file browser.
+	// Browser, its file browser. A terminal tab's Browser is its file
+	// panel, which shows when Files says so.
 	Kind    string        `json:"kind,omitempty"`
 	Name    string        `json:"name,omitempty"`
 	Browser *savedBrowser `json:"browser,omitempty"`
+	Files   bool          `json:"files,omitempty"`
 	Root    *savedNode    `json:"root"`
 	// Focus is the focused pane's place among the tree's panes, -1 for
 	// the file browser.
@@ -1389,6 +1399,9 @@ type savedBrowser struct {
 	Ratio  float32  `json:"ratio,omitempty"`
 	Open   []string `json:"open,omitempty"`
 	Hidden bool     `json:"hidden,omitempty"`
+	// Pinned is a file panel's root that stays as the terminal's folder
+	// changes.
+	Pinned bool `json:"pinned,omitempty"`
 }
 
 type savedNode struct {
@@ -1431,10 +1444,12 @@ func (a *App) snapshot() savedLayout {
 	for _, t := range a.tabs {
 		st := savedTab{Name: t.Name, Root: save(t.Root), Zoom: t.Zoom != nil}
 		st.Focus = max(slices.Index(t.panes(), t.Focus), 0)
-		if t.Kind == paneEditor && t.Browser != nil {
-			st.Kind = "editor"
-			st.Browser = t.Browser.files.saved(t.BrowserRatio)
-			if t.Focus == t.Browser {
+		if t.Browser != nil {
+			if t.Kind == paneEditor {
+				st.Kind = "editor"
+			}
+			st.Browser, st.Files = t.Browser.files.saved(t.BrowserRatio), t.FilesOpen
+			if t.Focus == t.Browser && t.showsFiles() {
 				st.Focus = -1
 			}
 		}
@@ -1529,13 +1544,16 @@ func (a *App) restore() bool {
 			}
 			t.Browser = a.newBrowserPane(t, b)
 			t.BrowserRatio = b.Ratio
+		} else if b := st.Browser; b != nil {
+			t.Browser = a.newBrowserPane(t, b)
+			t.BrowserRatio, t.FilesOpen = b.Ratio, st.Files
 		}
 		t.Root = load(st.Root, t, nil)
 		ps := t.panes()
 		for _, p := range ps {
 			t.setFocus(p)
 		}
-		if st.Focus < 0 && t.Browser != nil {
+		if st.Focus < 0 && t.showsFiles() {
 			t.setFocus(t.Browser)
 		} else {
 			t.setFocus(ps[min(max(st.Focus, 0), len(ps)-1)])
