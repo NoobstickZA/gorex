@@ -248,7 +248,11 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		byClick := a.eff.Editor.OpenOn != "doubleClick"
 		shift := c.Modifiers()&ui.Shift != 0
 		if o.Changed() && b.row >= 0 {
-			if item := b.tree.Item(b.row); byClick && !panel && !b.isDir[item] {
+			item := b.tree.Item(b.row)
+			// A choice closes the row's card, which waits for the
+			// pointer to come onto a row again.
+			a.holdGlance(p, item)
+			if byClick && !panel && !b.isDir[item] {
 				a.openFile(t, item, shift)
 			} else {
 				a.changed()
@@ -256,6 +260,7 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		}
 		if o.Submitted() && b.row >= 0 {
 			if item := b.tree.Item(b.row); !b.isDir[item] {
+				a.holdGlance(p, item)
 				if panel {
 					a.peekFromPanel(t, item)
 				} else {
@@ -265,6 +270,16 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		}
 		if o.Focused() && c.Shortcut(0, ui.KeyF5) {
 			a.refreshFocusedDir(p)
+		}
+		// Space peeks at the chosen file, as Quick Look does, and Escape
+		// closes the card.
+		if o.Focused() && b.row >= 0 && is(a.eff.Editor.Peek) {
+			if item := b.tree.Item(b.row); !b.isDir[item] && c.Shortcut(0, ui.KeySpace) {
+				a.toggleGlance(p, item)
+			}
+		}
+		if g := a.glance; g.pane == p && g.open && o.Focused() && c.Shortcut(0, ui.KeyEscape) {
+			a.closeGlance(p)
 		}
 	})
 }
@@ -311,12 +326,10 @@ func (a *App) browserRow(c *ui.Context, k *colors, t *Tab, p *Pane, item string,
 		col = gitCol
 	}
 	panel := t.Kind == paneTerminal
-	row := ui.Row(c).Gap(6).AlignItems(ui.Center).MinWidth(0)
-	if panel {
-		// The row takes the click across its width, which shows a file
-		// in the popup or opens or closes a folder (panelClick).
-		row.Grow(1)
-	}
+	// The row takes the pointer across its width: its card, and in the
+	// file panel the click, which shows a file in the popup or opens or
+	// closes a folder (panelClick).
+	row := ui.Row(c).Gap(6).AlignItems(ui.Center).MinWidth(0).Grow(1)
 	row.Children(func() {
 		ui.Icon(c, icon(glyph)).Size(14, 14).TextColor(iconCol).Shrink(0)
 		ui.Text(c, name).FontSize(12.5).TextColor(col).SingleLine().Ellipsis("…").MinWidth(0)
@@ -324,8 +337,12 @@ func (a *App) browserRow(c *ui.Context, k *colors, t *Tab, p *Pane, item string,
 			ui.Text(c, git).FontSize(11).FontWeight(600).TextColor(gitCol).Shrink(0).Tooltip(gitLabel(git))
 		}
 	})
+	if !b.isDir[item] {
+		a.glanceRow(c, k, t, p, item, row)
+	}
 	if panel {
 		if row.Clicked() {
+			a.holdGlance(p, item)
 			a.panelClick(t, p, item)
 		}
 		row.ContextMenu(func(m *ui.Menu) { a.panelMenu(m, t, p, item) })

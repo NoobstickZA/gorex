@@ -822,12 +822,17 @@ func (a *App) syncWatches() {
 
 // dirChanged takes the server's word that a directory changed: browsers
 // showing it read it again, open files in it, in any tab or the popup,
-// are looked at again, and git is asked again for the repository it is
-// in.
+// are looked at again, git is asked again for the repository it is in,
+// and Peek reads its files again.
 func (a *App) dirChanged(dir string) {
 	file := func(e *fileView) {
 		if e.path != "" && samePath(dirName(e.path), dir) {
 			a.checkFile(e)
+		}
+	}
+	for f := range a.glances {
+		if samePath(dirName(f), dir) {
+			delete(a.glances, f)
 		}
 	}
 	for _, t := range a.tabs {

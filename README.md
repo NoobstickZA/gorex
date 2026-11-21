@@ -287,6 +287,14 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
     it shows this host's files, not those of that session.
   - Whether the panel is open, its folder, pin and width come back with the
     layout.
+- **Peek.** Rest the pointer on a file in the file panel or an editor
+  tab's tree, and after half a second a card beside it shows the start of
+  the file, as Tern's Peek does: Markdown rendered, code highlighted
+  (the first 300 lines), pictures. Other files show their size and date.
+  - The card stays open while the pointer is on the file or the card, so
+    you can scroll it. Click the file's name at its top to open it.
+  - Space shows the card of the chosen file, and Escape closes it.
+  - Turn it off in Settings › Editor › Peek at files on hover.
 - **Settings** (⌘, / Ctrl+,). Settings is a dialog with a sidebar and a
   search over every row.
   - The look of a window follows the host it shows. These settings belong

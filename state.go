@@ -388,6 +388,10 @@ type App struct {
 	// peek is the file shown in the popup over a pane, nil for none
 	// (tsp_files.go).
 	peek *filePeek
+	// glance is the Peek card of a file browser's row showing, or about
+	// to, and glances what it shows of each file (files_glance.go).
+	glance  fileGlance
+	glances map[string]*glanceData
 	// fileKnown is what the host said of the paths messages name as code
 	// (tspCodeLinker).
 	fileKnown map[string]*fileAnswer

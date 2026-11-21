@@ -39,7 +39,6 @@ var (
 	cmdNewTab      = command{Title: "New Tab", Accel: "CmdOrCtrl+T", Keys: "⌘T", Other: ctrlShift(ui.KeyT), Run: func(a *App) { a.newTab(a.currentDir()) }}
 	cmdSplitRight  = command{Title: "Split Right", Accel: "CmdOrCtrl+D", Keys: "⌘D", Other: ctrlShift(ui.KeyD), Run: func(a *App) { a.split(false) }}
 	cmdSplitDown   = command{Title: "Split Down", Accel: "CmdOrCtrl+Shift+D", Keys: "⇧⌘D", Other: ctrlShift(ui.KeyMinus), Run: func(a *App) { a.split(true) }}
-	// The file panel beside a terminal tab's panes, as Tern's.
 	cmdToggleFiles = command{Title: "Show Files", Accel: "CmdOrCtrl+Shift+E", Keys: "⇧⌘E", Other: ctrlShift(ui.KeyE), Run: func(a *App) { a.toggleFiles() }, Shown: func(a *App) bool { return a.tab() != nil && a.tab().Kind == paneTerminal }}
 	cmdClosePane   = command{Title: "Close Pane", Accel: "CmdOrCtrl+W", Keys: "⌘W", Other: ctrlShift(ui.KeyW), Run: func(a *App) { a.closeFocused() }}
 	cmdCloseTab    = command{Title: "Close Tab", Accel: "CmdOrCtrl+Shift+W", Keys: "⇧⌘W", Run: func(a *App) { a.closeActiveTab() }}

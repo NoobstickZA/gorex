@@ -3,7 +3,11 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/egoist/mygo/ui"
 )
 
 // TestFilePanel: a terminal tab's file panel opens on the terminal's
@@ -115,5 +119,82 @@ func TestCdCommand(t *testing.T) {
 		if got := cdCommand(c.shell, c.dir); got != c.want {
 			t.Errorf("%s, %q: %q, want %q", c.shell, c.dir, got, c.want)
 		}
+	}
+}
+
+// TestPeek: resting the pointer on a file's row opens its card after the
+// delay, with the file rendered; leaving closes it; Space opens it for
+// the chosen row and Escape closes it; and the setting turns it off.
+func TestPeek(t *testing.T) {
+	a, tt := newTestApp(t)
+	a.eff = builtin
+	root := testDir(t)
+	defer os.RemoveAll(root)
+	os.WriteFile(filepath.Join(root, "notes.md"), []byte("# Peek Title\n\nhello from the card\n"), 0o644)
+
+	tab := a.newEditorTab(root)
+	b := tab.Browser.files
+	waitFor(t, tt, "the root's entries", func() bool { return tt.HasText("notes.md") })
+	r, _ := tt.Find("notes.md")
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if a.glance.open {
+		t.Fatal("the card opened before the delay")
+	}
+	tt.Advance(glanceDelay + 50*time.Millisecond)
+	waitFor(t, tt, "the card", func() bool { return a.glance.open && tt.HasText("hello from the card") })
+	if !tt.HasText("Peek") {
+		t.Errorf("the card has no Peek label: %q", tt.Texts())
+	}
+
+	// Leaving the row closes it after the grace.
+	tt.Move(990, 600)
+	tt.Frame()
+	tt.Advance(glanceGrace + 50*time.Millisecond)
+	tt.Frame()
+	if a.glance.open || tt.HasText("hello from the card") {
+		t.Fatal("the card stays open after the pointer left")
+	}
+
+	// Space peeks at the chosen row, Escape closes the card.
+	for i := range b.tree.Rows() {
+		if baseName(b.tree.Item(i)) == "notes.md" {
+			b.row = i
+		}
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeySpace)
+	waitFor(t, tt, "the card on Space", func() bool { return a.glance.byKey && tt.HasText("hello from the card") })
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if a.glance.open {
+		t.Error("Escape left the card open")
+	}
+
+	// Turned off, resting on the row opens nothing.
+	a.eff.Editor.Peek = off
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	tt.Advance(glanceDelay + 50*time.Millisecond)
+	tt.Frame()
+	if a.glance.open {
+		t.Error("the card opened with Peek turned off")
+	}
+}
+
+// TestGlanceMarkdown: the card shows Markdown as it is, and code fenced
+// in its language, past any backticks in it, cut to its first lines.
+func TestGlanceMarkdown(t *testing.T) {
+	if md, cut := glanceMarkdown("a.md", "# T\n"); md != "# T\n" || cut {
+		t.Errorf("Markdown: %q, cut %v", md, cut)
+	}
+	code := "package main\n// ```go\n"
+	if md, _ := glanceMarkdown("main.go", code); md != "````go\n"+code+"````\n" {
+		t.Errorf("code: %q", md)
+	}
+	long := strings.Repeat("x\n", glanceLines+50)
+	md, cut := glanceMarkdown("notes.txt", long)
+	if !cut || strings.Count(md, "x\n") != glanceLines {
+		t.Errorf("long text: cut %v, %d lines", cut, strings.Count(md, "x\n"))
 	}
 }
