@@ -122,6 +122,7 @@ func main() {
 	// that cannot update themselves, as dev builds, never check.
 	mygo.Use(native.Plugin)
 	mygo.App.SetMenu(a.menu())
+	a.watchRebuild()
 	mygo.App.WhenReady(a.open)
 	mygo.App.OnActivate(func(hasVisibleWindows bool) {
 		if !hasVisibleWindows && a.win == nil {

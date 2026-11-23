@@ -64,6 +64,7 @@ var (
 	cmdConnLog     = command{Title: "Connection Log…", Run: func(a *App) { a.logOpen = true }}
 	cmdSettings    = command{Title: "Settings…", Accel: "CmdOrCtrl+,", Keys: "⌘,", Other: shortcut{ui.Ctrl, ui.KeyComma}, Run: func(a *App) { a.openSettings() }}
 	cmdUpdates     = command{Title: "Check for Updates…", Run: func(*App) { updater.CheckForUpdates() }}
+	cmdReloadWin   = command{Title: "Reload Window", Accel: "CmdOrCtrl+Shift+F5", Keys: "⇧⌘F5", Other: ctrlShift(ui.KeyF5), Run: func(a *App) { a.reloadWindow() }}
 	cmdBigger      = command{Title: "Bigger Text", Accel: "CmdOrCtrl+=", Keys: "⌘+", Other: shortcut{ui.Ctrl, ui.KeyEqual}, Run: func(a *App) { a.stepFontSize(1) }}
 	cmdSmaller     = command{Title: "Smaller Text", Accel: "CmdOrCtrl+-", Keys: "⌘−", Other: shortcut{ui.Ctrl, ui.KeyMinus}, Run: func(a *App) { a.stepFontSize(-1) }}
 	cmdDefaultSize = command{Title: "Default Size", Accel: "CmdOrCtrl+0", Keys: "⌘0", Other: shortcut{ui.Ctrl, ui.Key0}, Run: func(a *App) { a.defaultFontSize() }}
@@ -101,7 +102,7 @@ var paletteCommands = []*command{
 	&cmdFocusLeft, &cmdFocusRight, &cmdFocusUp, &cmdFocusDown,
 	&cmdGrowLeft, &cmdGrowRight, &cmdGrowUp, &cmdGrowDown,
 	&cmdBigger, &cmdSmaller, &cmdDefaultSize, &cmdLight, &cmdDark, &cmdSystem,
-	&cmdClearScroll, &cmdRestart, &cmdReconnect, &cmdConnLog, &cmdSettings, &cmdUpdates, &cmdEndAll,
+	&cmdClearScroll, &cmdRestart, &cmdReconnect, &cmdReloadWin, &cmdConnLog, &cmdSettings, &cmdUpdates, &cmdEndAll,
 	&cmdSendBreak, &cmdReleasePort, &cmdHostSettings, &cmdRestartServer, &cmdImportHosts, &cmdConvertKey,
 }
 
@@ -154,7 +155,7 @@ func (s shortcut) String() string {
 		key = map[ui.Key]string{
 			ui.KeyEnter: "Enter", ui.KeyPageUp: "PageUp", ui.KeyPageDown: "PageDown",
 			ui.KeyLeft: "Left", ui.KeyRight: "Right", ui.KeyUp: "Up", ui.KeyDown: "Down",
-			ui.KeyEqual: "=", ui.KeyMinus: "-", ui.KeyComma: ",",
+			ui.KeyEqual: "=", ui.KeyMinus: "-", ui.KeyComma: ",", ui.KeyF5: "F5",
 		}[k]
 	}
 	return strings.Join(append(parts, key), "+")
@@ -232,6 +233,7 @@ func (a *App) menu() *mygo.Menu {
 			item(&cmdToggleFiles),
 			item(&cmdZoom),
 			item(&cmdEqualize),
+			item(&cmdReloadWin),
 			mygo.Separator(),
 			{Label: "Focus", Submenu: []*mygo.MenuItem{item(&cmdFocusLeft), item(&cmdFocusRight), item(&cmdFocusUp), item(&cmdFocusDown)}},
 			{Label: "Resize", Submenu: []*mygo.MenuItem{item(&cmdGrowLeft), item(&cmdGrowRight), item(&cmdGrowUp), item(&cmdGrowDown)}},

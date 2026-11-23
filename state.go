@@ -395,6 +395,9 @@ type App struct {
 	// fileClip is the file a file browser cut or copied, nil for none
 	// (files_ops.go).
 	fileClip *fileClip
+	// rebuilt tells that a development build's file changed since it
+	// started, which a banner offers to reload (reload.go).
+	rebuilt bool
 	// fileKnown is what the host said of the paths messages name as code
 	// (tspCodeLinker).
 	fileKnown map[string]*fileAnswer

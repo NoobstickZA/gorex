@@ -105,6 +105,8 @@ func (a *App) view(c *ui.Context) {
 	})
 	if a.err != "" {
 		banner(c, k, a.err, ui.Hex("#ef4444"), func() { a.err, a.errAction, a.errRun = "", "", nil }, a.errAction, a.errRun)
+	} else if a.rebuilt {
+		banner(c, k, "GoRex was rebuilt. Reload the window to use the new build; its sessions keep running.", k.busy, func() { a.rebuilt = false }, "Reload", a.reloadWindow)
 	}
 	a.shortcuts(c)
 	a.palette(c, k)

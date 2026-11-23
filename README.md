@@ -350,6 +350,7 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
 | ⌘1…⌘9, ⇧⌘[ ⇧⌘], ⌃Tab | Ctrl+Shift+1…9, Ctrl+PageUp/PageDown, Ctrl+Tab | Switch tabs |
 | ⇧⌘R | Ctrl+Shift+R | Rename tab |
 | ⇧⌘P, ⌘P | Ctrl+Shift+P | Command palette |
+| ⇧⌘F5 | Ctrl+Shift+F5 | Reload the window: GoRex starts again on the same host, with its tabs and sessions |
 | ⌘K | Ctrl+Shift+K | Clear |
 | ⌘+ ⌘− ⌘0 | Ctrl+= Ctrl+- Ctrl+0 | Text size for this host; ⌘0 returns to the Defaults. ⌘ or Ctrl with the mouse wheel also works |
 | ⇧⌘O | Ctrl+Shift+O | New editor tab |
@@ -403,9 +404,17 @@ Sessions outlive the app, and also a new build. When a different build
 connects to a session server, the server replaces its own program in place
 and keeps its sessions. This also happens on ssh hosts: the first
 connection after a rebuild copies the new build to the host, and its server
-replaces itself. Windows can't replace a running server. There, a
-development build restarts this PC's server, which ends its sessions. A
-release keeps the old server running until you use Restart Session Server….
+replaces itself. Windows can't replace a running server, so GoRex keeps
+this PC's old server running, and its sessions with it. A development
+build says so in a banner whose Replace server button restarts the server,
+which ends its sessions; a release waits until you use Restart Session
+Server….
+
+After a rebuild, Reload Window (⇧⌘F5 / Ctrl+Shift+F5, or the command
+palette) starts the window again from the new build, on the same host,
+with its tabs and sessions. A development build notices the rebuild by
+itself and offers to reload in a banner. Unsaved changes in editors are
+asked about first.
 
 ### Windows
 

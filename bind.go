@@ -201,11 +201,16 @@ func dialBinding(b binding, prog remote.Progress, login *askpass.Session, restar
 		return fail(err)
 	}
 	stale := !b.remote && staleServer(h) || b.remote && h.Exe != link.Exe()
-	if stale && !b.remote && runtime.GOOS == "windows" && !mygo.IsDev() {
+	if stale && !b.remote && runtime.GOOS == "windows" {
 		// This machine's server can't be replaced in place on Windows,
 		// and a new one ends the sessions: a release keeps the one
-		// running, and asks only for another protocol (attachBinding).
+		// running, and asks only for another protocol (attachBinding);
+		// a development build keeps it too, and says so (old), with
+		// Replace server to end them when the user chooses.
 		stale = false
+		if mygo.IsDev() && !restart {
+			return client, link, h, true, nil
+		}
 	}
 	if guard != nil && (restart || stale) {
 		// A server another build started runs that build's code: it
