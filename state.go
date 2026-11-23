@@ -392,6 +392,9 @@ type App struct {
 	// to, and glances what it shows of each file (files_glance.go).
 	glance  fileGlance
 	glances map[string]*glanceData
+	// fileClip is the file a file browser cut or copied, nil for none
+	// (files_ops.go).
+	fileClip *fileClip
 	// fileKnown is what the host said of the paths messages name as code
 	// (tspCodeLinker).
 	fileKnown map[string]*fileAnswer

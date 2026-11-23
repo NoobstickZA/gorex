@@ -3,10 +3,12 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -196,5 +198,108 @@ func TestGlanceMarkdown(t *testing.T) {
 	md, cut := glanceMarkdown("notes.txt", long)
 	if !cut || strings.Count(md, "x\n") != glanceLines {
 		t.Errorf("long text: cut %v, %d lines", cut, strings.Count(md, "x\n"))
+	}
+}
+
+// TestFileOperations: a browser's new file (which opens) and folder, a
+// name refused, rename (an open file following it), duplicate, copy and
+// cut with paste, and delete, asked first; and the trash, asked first,
+// offering to delete where the host has none.
+func TestFileOperations(t *testing.T) {
+	a, tt := newTestApp(t)
+	a.eff = builtin
+	root := testDir(t)
+	defer os.RemoveAll(root)
+	sub := filepath.Join(root, "sub")
+	os.Mkdir(sub, 0o755)
+	answer := 0
+	asked := 0
+	defer func(old func(mygo.MessageOptions) (mygo.MessageResult, error)) { messageBox = old }(messageBox)
+	messageBox = func(mygo.MessageOptions) (mygo.MessageResult, error) {
+		asked++
+		return mygo.MessageResult{Button: answer}, nil
+	}
+	exists := func(names ...string) func() bool {
+		return func() bool {
+			_, err := os.Lstat(filepath.Join(append([]string{root}, names...)...))
+			return err == nil
+		}
+	}
+	gone := func(names ...string) func() bool { e := exists(names...); return func() bool { return !e() } }
+
+	tab := a.newEditorTab(root)
+	p := tab.Browser
+	waitFor(t, tt, "the root's entries", func() bool { return tt.HasText("sub") })
+
+	// A new file opens in the editor.
+	a.startNaming(p, "file", "")
+	p.files.nameField = "new.txt"
+	a.submitName(tab, p)
+	waitFor(t, tt, "the new file", exists("new.txt"))
+	waitFor(t, tt, "the new file open", func() bool {
+		f := tab.treeFocus()
+		return f != nil && f.Kind == paneEditor && samePath(f.edit.path, filepath.Join(root, "new.txt"))
+	})
+	a.startNaming(p, "folder", sub)
+	p.files.nameField = "inner"
+	a.submitName(tab, p)
+	waitFor(t, tt, "the new folder", exists("sub", "inner"))
+	a.startNaming(p, "file", "")
+	p.files.nameField = "a/b"
+	a.submitName(tab, p)
+	if p.files.naming == "" {
+		t.Error("a name with a separator was taken")
+	}
+	p.files.naming = ""
+
+	// Rename; the open file follows.
+	a.startNaming(p, "rename", filepath.Join(root, "new.txt"))
+	p.files.nameField = "renamed.txt"
+	a.submitName(tab, p)
+	waitFor(t, tt, "the rename", func() bool { return exists("renamed.txt")() && gone("new.txt")() })
+	waitFor(t, tt, "the editor to follow", func() bool {
+		return samePath(tab.treeFocus().edit.path, filepath.Join(root, "renamed.txt"))
+	})
+
+	a.duplicate(p, filepath.Join(root, "renamed.txt"))
+	waitFor(t, tt, "the duplicate", exists("renamed copy.txt"))
+	a.clip(filepath.Join(root, "renamed.txt"), false)
+	a.paste(p, sub)
+	waitFor(t, tt, "the pasted copy", exists("sub", "renamed.txt"))
+	a.clip(filepath.Join(root, "renamed copy.txt"), true)
+	a.paste(p, filepath.Join(sub, "inner"))
+	waitFor(t, tt, "the move", func() bool { return exists("sub", "inner", "renamed copy.txt")() && gone("renamed copy.txt")() })
+	if a.fileClip != nil {
+		t.Error("a cut file stays on the clipboard after the paste")
+	}
+
+	// Delete asks; Cancel keeps the folder.
+	answer = 1
+	a.deleteItem(p, filepath.Join(sub, "inner"))
+	tt.Frame()
+	if asked != 1 || !exists("sub", "inner")() {
+		t.Fatalf("delete on Cancel: asked %d", asked)
+	}
+	answer = 0
+	a.deleteItem(p, filepath.Join(sub, "inner"))
+	waitFor(t, tt, "the delete", gone("sub", "inner"))
+
+	// The trash asks first; where the host has none, it offers to delete.
+	asked, answer = 0, 1
+	a.trash(p, filepath.Join(root, "renamed.txt"))
+	tt.Frame()
+	if asked != 1 || !exists("renamed.txt")() {
+		t.Fatalf("trash on Cancel: asked %d", asked)
+	}
+	if runtime.GOOS == "windows" {
+		return // the Recycle Bin is the user's own
+	}
+	t.Setenv("HOME", root)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(root, "no-data"))
+	asked, answer = 0, 0
+	a.trash(p, filepath.Join(root, "renamed.txt"))
+	waitFor(t, tt, "the delete offered for want of a trash", gone("renamed.txt"))
+	if asked != 2 {
+		t.Errorf("asked %d times, not twice", asked)
 	}
 }

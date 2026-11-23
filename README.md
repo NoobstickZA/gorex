@@ -295,6 +295,26 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
     you can scroll it. Click the file's name at its top to open it.
   - Space shows the card of the chosen file, and Escape closes it.
   - Turn it off in Settings › Editor › Peek at files on hover.
+- **Working with files.** The file panel and the editor tab's tree create,
+  rename, copy, move and delete the host's files, through its session
+  server, so ssh hosts work as well.
+  - Right-click a row for New File…, New Folder…, Rename…, Duplicate, Cut,
+    Copy, Paste, Move to Trash… (Recycle Bin on Windows) and Delete…. The
+    ⋯ menu in the header also has New File…, New Folder… and Paste.
+  - Keys, while the tree has the focus: ⌘N / Ctrl+N a new file, ⇧⌘N /
+    Ctrl+Shift+N a new folder, F2 rename, ⌘X ⌘C ⌘V / Ctrl+X Ctrl+C Ctrl+V,
+    and ⌘⌫ / Delete or Ctrl+Backspace the trash.
+  - A name is typed in a field at the top of the tree. A new file opens at
+    once. A copy next to its original is called "name copy", then "name
+    copy 2". Nothing replaces a file that is already there.
+  - Files open in editors and the popup follow a rename or a move.
+  - Move to Trash and Delete always ask first. Windows uses the Recycle
+    Bin of a fixed drive, macOS `~/.Trash`, and Linux the desktop's trash,
+    but only where `~/.local/share/Trash` already exists. Where a host has
+    no trash for a file, GoRex offers to delete it for good, and asks
+    again.
+  - Cut and Copy work within one host's files. Pasting files from Explorer
+    or Finder is not supported.
 - **Settings** (⌘, / Ctrl+,). Settings is a dialog with a sidebar and a
   search over every row.
   - The look of a window follows the host it shows. These settings belong

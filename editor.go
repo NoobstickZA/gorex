@@ -62,6 +62,10 @@ type browserState struct {
 	// to open them again on going back (followRoot).
 	pinned bool
 	seen   map[string][]string
+	// naming is the name field's errand while it shows: "file" and
+	// "folder" new in the folder nameOf, "rename" the file nameOf; and
+	// nameField the name typed (files_ops.go).
+	naming, nameOf, nameField string
 }
 
 func (b *browserState) saved(ratio float32) *savedBrowser {

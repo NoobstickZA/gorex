@@ -21,7 +21,7 @@ import (
 )
 
 // ProtocolVersion changes whenever the wire protocol does.
-const ProtocolVersion = 8
+const ProtocolVersion = 9
 
 // BridgeReady starts the line a bridge prints before it multiplexes its
 // standard input and output; the rest of the line is its executable.
@@ -60,11 +60,14 @@ type Request struct {
 	// Value; the server stores it and does not read it.
 	Key   string          `json:"key,omitempty"`
 	Value json.RawMessage `json:"value,omitempty"`
-	// Path is a file of the host's for stat, readDir, readFile and
-	// writeFile; Data what writeFile writes. Max caps what readFile
-	// reads, 0 for no cap; IfModTime, when set, has writeFile refuse a
-	// file modified since then.
+	// Path is a file of the host's for stat, readDir, readFile,
+	// writeFile and the file operations (mkdir, createFile, rename, copy,
+	// trash, delete); Data what writeFile writes, and To where rename and
+	// copy put Path. Max caps what readFile reads, 0 for no cap;
+	// IfModTime, when set, has writeFile refuse a file modified since
+	// then.
 	Path      string    `json:"path,omitempty"`
+	To        string    `json:"to,omitempty"`
 	Data      []byte    `json:"data,omitempty"`
 	Max       int64     `json:"max,omitempty"`
 	IfModTime time.Time `json:"ifModTime,omitzero"`

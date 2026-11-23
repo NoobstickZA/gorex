@@ -415,6 +415,18 @@ func (s *Server) do(req Request) (any, error) {
 		return readGitFile(req.Path, req.Rev, req.Blob, req.Max)
 	case "writeFile":
 		return writeFile(req.Path, req.Data, req.IfModTime)
+	case "mkdir":
+		return makeDir(req.Path)
+	case "createFile":
+		return createFile(req.Path)
+	case "rename":
+		return renameFile(req.Path, req.To)
+	case "copy":
+		return copyFile(req.Path, req.To)
+	case "trash":
+		return trashFile(req.Path)
+	case "delete":
+		return deleteFile(req.Path)
 	case "gitStatus":
 		return gitStatus(req.Path)
 	case "shutdown":

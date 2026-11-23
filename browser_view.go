@@ -38,6 +38,20 @@ func (a *App) browserHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, 
 			}
 			more := iconButton(c, k, "ellipsis", "More", 26, 16).Tooltip("More")
 			more.Menu(func(m *ui.Menu) {
+				chosen := ""
+				if b.row >= 0 && b.row < b.tree.Rows() {
+					chosen = b.tree.Item(b.row)
+				}
+				if m.Item("New File…").Chosen() {
+					a.startNaming(p, "file", chosen)
+				}
+				if m.Item("New Folder…").Chosen() {
+					a.startNaming(p, "folder", chosen)
+				}
+				if m.Item("Paste").Disabled(!a.canPaste()).Chosen() {
+					a.paste(p, chosen)
+				}
+				m.Separator()
 				if panel && m.Item("Pin This Folder").Checked(b.pinned).Chosen() {
 					a.togglePin(p)
 				}
@@ -197,6 +211,9 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 				}
 			})
 		}
+		if b.naming != "" {
+			a.nameFieldUI(c, k, t, p)
+		}
 		if note := a.awayNote(t); panel && note != "" {
 			ui.Text(c, note).FontSize(11.5).TextColor(k.textMuted).Padding(2, 8, 6, 8)
 		}
@@ -270,6 +287,13 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		}
 		if o.Focused() && c.Shortcut(0, ui.KeyF5) {
 			a.refreshFocusedDir(p)
+		}
+		if o.Focused() && b.naming == "" {
+			item := ""
+			if b.row >= 0 && b.row < b.tree.Rows() {
+				item = b.tree.Item(b.row)
+			}
+			a.opsKeys(c, p, item)
 		}
 		// Space peeks at the chosen file, as Quick Look does, and Escape
 		// closes the card.
@@ -371,6 +395,7 @@ func (a *App) browserRow(c *ui.Context, k *colors, t *Tab, p *Pane, item string,
 		if m.Item("Copy Path").Chosen() {
 			a.services.WriteClipboard(item)
 		}
+		a.opsMenu(m, p, item)
 	})
 }
 

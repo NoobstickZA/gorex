@@ -189,6 +189,7 @@ func (a *App) panelMenu(m *ui.Menu, t *Tab, p *Pane, item string) {
 	if !a.bind.away() && m.Item(revealLabel()).Chosen() {
 		a.reveal(item)
 	}
+	a.opsMenu(m, p, item)
 }
 
 // awayNote is what a file panel says while its terminal runs a program

@@ -372,6 +372,30 @@ func (c *Client) WriteFile(path string, data []byte, ifModTime time.Time) (time.
 	return fd.ModTime, err
 }
 
+// Mkdir makes a folder of the host's, and CreateFile an empty file; both
+// refuse a name that exists.
+func (c *Client) Mkdir(path string) error { return c.call(Request{Op: "mkdir", Path: path}, nil) }
+
+func (c *Client) CreateFile(path string) error {
+	return c.call(Request{Op: "createFile", Path: path}, nil)
+}
+
+// Rename moves a file or folder of the host's to to, and Copy copies it
+// there, with all inside a folder; both refuse a to that exists.
+func (c *Client) Rename(path, to string) error {
+	return c.call(Request{Op: "rename", Path: path, To: to}, nil)
+}
+
+func (c *Client) Copy(path, to string) error {
+	return c.call(Request{Op: "copy", Path: path, To: to}, nil)
+}
+
+// Trash moves a file or folder of the host's to its trash, failing with
+// ErrNoTrash where the host has none for it; Delete deletes it for good.
+func (c *Client) Trash(path string) error { return c.call(Request{Op: "trash", Path: path}, nil) }
+
+func (c *Client) Delete(path string) error { return c.call(Request{Op: "delete", Path: path}, nil) }
+
 // Watch has the server tell of changes in a directory, as "changed"
 // events; Unwatch stops that.
 func (c *Client) Watch(path string) error { return c.call(Request{Op: "watch", Path: path}, nil) }
