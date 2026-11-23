@@ -352,8 +352,11 @@ func (a *App) tspPickerRow(c *ui.Context, k *colors, it map[string]any, layout s
 	depth, _ := it["depth"].(float64)
 	row := ui.Row(c).Gap(8).AlignItems(ui.Center).FillWidth().Padding(3, 6, 3, 6+float32(depth)*14).Radius(5).Unselectable()
 	if selected {
-		row.Background(k.hover).ScrollIntoView()
+		row.Background(k.hover)
 	}
+	// Into view as it is selected, not every frame after, which would
+	// keep the wheel from scrolling the list away from it.
+	tspReveal(row, selected)
 	if d := it["disabled"]; d != nil && d != false {
 		row.Opacity(0.5)
 		if why, ok := d.(string); ok {
