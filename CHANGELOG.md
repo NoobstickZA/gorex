@@ -28,9 +28,11 @@ to build. It also refuses to build a version that is already published.
 - Fixed: labels in omp's charts were drawn twice, slightly apart.
 - Fixed: the mouse wheel could not scroll long lists in omp, such as
   `/login`'s providers, past the chosen row.
+- Fixed: in the preview of a Markdown file, a code block without a
+  language, or with one GoRex doesn't colour, showed as one run-together
+  paragraph. It now shows as code, with its lines and indentation.
 - Fixed: the MyGo preview of a Markdown file kept showing the file as it
-  was when the preview opened, after the file changed on disk. The web
-  view's preview was not affected.
+  was when the preview opened, after the file changed on disk.
 - This version's session server knows the new file operations. On
   Windows, the server already running keeps running, with your sessions;
   until you use Restart Session Server…, the file operations say that the

@@ -61,3 +61,22 @@ func TestCSS(t *testing.T) {
 		t.Errorf("no dark keyword class in %q", css)
 	}
 }
+
+// TestPlainCodeBlock: a code block of no language, or one Chroma doesn't
+// know, comes out in <pre><code> with its lines and indentation, as a
+// coloured one does, and not as bare text a paragraph runs together.
+func TestPlainCodeBlock(t *testing.T) {
+	for _, c := range []struct{ fence, class string }{
+		{"```", ""},
+		{"```no-such-language", ` class="language-no-such-language"`},
+	} {
+		out := Render(c.fence + "\ninterface eth0\n   role routed\n```\n\nAfter.\n")
+		want := "<pre><code" + c.class + ">interface eth0\n   role routed\n</code></pre></div>"
+		if !strings.Contains(out, want) {
+			t.Errorf("%s: %q, want it to have %q", c.fence, out, want)
+		}
+		if !strings.Contains(out, "<p data-line=\"5\">After.</p>") {
+			t.Errorf("%s: the paragraph after it: %q", c.fence, out)
+		}
+	}
+}

@@ -131,10 +131,15 @@ func (r *mermaidRenderer) render(w util.BufWriter, source []byte, n ast.Node, en
 	return ast.WalkSkipChildren, nil
 }
 
-// codeWrapper wraps a highlighted code block in a div carrying its source
-// line, which Chroma's own markup can't.
+// codeWrapper wraps a code block in a div carrying its source line, which
+// Chroma's own markup can't. A block Chroma colours brings its own pre;
+// one it can't, of no language or one it doesn't know, is the wrapper's
+// to put in <pre><code>, or its text runs together as a paragraph's.
 func codeWrapper(w util.BufWriter, ctx highlighting.CodeBlockContext, entering bool) {
 	if !entering {
+		if !ctx.Highlighted() {
+			w.WriteString("</code></pre>")
+		}
 		w.WriteString("</div>")
 		return
 	}
@@ -145,6 +150,15 @@ func codeWrapper(w util.BufWriter, ctx highlighting.CodeBlockContext, entering b
 		}
 	}
 	w.WriteString(">")
+	if !ctx.Highlighted() {
+		w.WriteString("<pre><code")
+		if lang, ok := ctx.Language(); ok {
+			w.WriteString(` class="language-`)
+			w.Write(util.EscapeHTML(lang))
+			w.WriteString(`"`)
+		}
+		w.WriteString(">")
+	}
 }
 
 // lineMarker gives every block node a data-line attribute: the source
