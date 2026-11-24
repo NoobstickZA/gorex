@@ -94,6 +94,8 @@ build() {
 			$SSH "$MAC_HOST" "cd $MAC_DIR/$SITE_BUILD/$t && tar -cf - \$(ls *.dmg *.deb *.tar.gz update-*.json install.sh *.delta 2>/dev/null)" | tar -xf - -C "$SITE_BUILD/$t"
 		done
 	fi
+	# The commit the site was built from, which github tags.
+	echo "$head" >"$SITE_BUILD/commit"
 	stage
 }
 
@@ -148,14 +150,19 @@ sync() {
 }
 
 # github makes VERSION a release on GitHub (GITHUB_REPO), once the site
-# has it on every platform: tag vVERSION on the commit that set mygo.json
-# to VERSION (the release commit, which the fork must have), pushed to the
-# fork; the version's section of CHANGELOG.md as its notes; and as its
-# files the installers that website/updates has from make website, Linux's
+# has it on every platform: tag vVERSION on the commit the site was built
+# from (make website notes it), or without that note on the commit that
+# set mygo.json to VERSION, which the fork must have, pushed to the fork;
+# the version's section of CHANGELOG.md as its notes; and as its files the
+# installers that website/updates has from make website, Linux's
 # install.sh, and their SHA256SUMS. Run again, it uploads them again.
 github() {
 	git fetch -q fork
-	rel=$(git log -1 --format=%H -S"\"version\": \"$VERSION\"" -- mygo.json)
+	rel=""
+	if [ -f "$SITE_BUILD/commit" ]; then
+		rel=$(cat "$SITE_BUILD/commit")
+	fi
+	[ -n "$rel" ] || rel=$(git log -1 --format=%H -S"\"version\": \"$VERSION\"" -- mygo.json)
 	[ -n "$rel" ] || die "no commit sets mygo.json's version to $VERSION"
 	git merge-base --is-ancestor "$rel" fork/master || die "the fork does not have $rel, the release commit of $VERSION. Push it first."
 	out="$SITE_BUILD-github"
