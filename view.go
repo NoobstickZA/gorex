@@ -437,6 +437,16 @@ func (a *App) paneCard(c *ui.Context, k *colors, t *Tab, p *Pane) ui.Element {
 			// place is relative to the view, and cut to it.
 			host := ui.Box(c).Grow(1).MinHeight(0).Clip()
 			p.hostBounds = host.Bounds()
+			// Files dropped over the surfaces a program draws on the
+			// terminal, past the terminal's own view, go where a drop on
+			// the terminal goes.
+			if files := host.DroppedFiles(); len(files) > 0 {
+				if a.bind.host() {
+					a.dropOnTerminal(p, files)
+				} else {
+					pasteLocalPaths(p, files)
+				}
+			}
 			host.Children(func() {
 				tv := terminal.View(c, p.term).Fill()
 				// With a live dock, the program's composer has the keys
@@ -758,7 +768,21 @@ func (a *App) toasts(c *ui.Context, k *colors) {
 					ui.Text(c, t.Description).FontSize(12.5).TextColor(k.textFaint).MaxWidth(300)
 				}
 				if t.Type == "working" {
-					ui.Spinner(c).Size(14, 14)
+					if frac, ok := t.Data.(toastProgress); ok {
+						// How far it is, as a bar.
+						bar := ui.Box(c).Size(90, 4).Radius(2).Background(k.text.Alpha(0.12)).Shrink(0).Clip()
+						bar.Children(func() {
+							ui.Box(c).Size(90*float32(min(max(frac, 0), 1)), 4).Background(k.busy)
+						})
+					} else {
+						ui.Spinner(c).Size(14, 14)
+					}
+				}
+				if t.Action != "" && textButton(c, k, t.Action).Clicked() {
+					if t.OnAction != nil {
+						t.OnAction()
+					}
+					c.CloseToast(t.ID)
 				}
 			})
 		}

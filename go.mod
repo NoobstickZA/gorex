@@ -44,4 +44,4 @@ tool github.com/egoist/mygo/cmd/mygo
 // GoRex's MyGo: upstream main and the changes GoRex carries, branch
 // gorex-upstream-3 of the fork. To work on MyGo alongside, replace it with
 // ../mygo in a go.work, which is not committed.
-replace github.com/egoist/mygo => github.com/roelfdiedericks/mygo v0.0.0-20261116215702-422e5b825af7
+replace github.com/egoist/mygo => github.com/roelfdiedericks/mygo v0.0.0-20261124174801-baf8d37d549a

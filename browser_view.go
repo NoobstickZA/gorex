@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 )
@@ -229,6 +230,15 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		}
 		b.tree.List.Selected = &b.row
 		b.tree.List.Label = func(row int) string { return baseName(b.tree.Item(row)) }
+		// A row drags out to a file manager, which copies its file or
+		// folder (downloads.go); the root stays, as it holds the whole
+		// tree.
+		b.tree.List.DragData = func(rows []int) transfer.Data {
+			if len(rows) == 0 || b.tree.Item(rows[0]) == b.root {
+				return transfer.Data{}
+			}
+			return a.dragOut(p, b.tree.Item(rows[0]))
+		}
 		focusedFile := ""
 		if f := t.treeFocus(); f != nil && f.Kind == paneEditor {
 			focusedFile = f.edit.path
@@ -248,6 +258,10 @@ func (a *App) browserBody(c *ui.Context, k *colors, t *Tab, p *Pane) {
 		o := ui.Outline(c, &b.tree, []string{b.root}, func(dir string) []string { return a.browserEntries(p, dir) }, func(item string) {
 			a.browserRow(c, k, t, p, item, item == focusedFile, modified[item])
 		}).Grow(1).MinHeight(0)
+		// Files dropped from the desktop past the rows go into the root.
+		if files := o.DroppedFiles(); len(files) > 0 {
+			a.uploadInto(p, files, b.root)
+		}
 		a.revealRow(c, b)
 		if a.focusReq == p && a.tab() == t {
 			o.Focus()
@@ -361,6 +375,18 @@ func (a *App) browserRow(c *ui.Context, k *colors, t *Tab, p *Pane, item string,
 			ui.Text(c, git).FontSize(11).FontWeight(600).TextColor(gitCol).Shrink(0).Tooltip(gitLabel(git))
 		}
 	})
+	// Files dropped from the desktop on the row go into its folder, or
+	// the folder of its file, which lights up while they are over it.
+	if row.FileDragOver() {
+		row.Background(k.busy.Alpha(0.18)).Radius(4)
+	}
+	if files := row.DroppedFiles(); len(files) > 0 {
+		dir := item
+		if !b.isDir[item] {
+			dir = dirName(item)
+		}
+		a.uploadInto(p, files, dir)
+	}
 	if !b.isDir[item] {
 		a.glanceRow(c, k, t, p, item, row)
 	}

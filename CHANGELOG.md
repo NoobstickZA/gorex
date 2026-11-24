@@ -35,6 +35,18 @@ to build. It also refuses to build a version that is already published.
   amber for an edit. Markdown previews colour the paragraphs, lists and
   code blocks those lines are in. The colour goes away when you edit the
   file.
+- Drag files or folders from your desktop onto the file panel or an
+  editor tab's tree to copy them to the host, ssh hosts included. Drop on
+  a folder to put them in it. Drop on a terminal to upload them to the
+  folder its program is in and paste their paths at the prompt. A toast
+  shows the progress, with Cancel. When a name already exists, GoRex asks
+  whether to replace it, keep both or skip it. Files keep their
+  modification times.
+- Drag a file or folder from the file panel or an editor tab's tree to
+  your desktop or a folder to copy it there, from ssh hosts too. On
+  Windows, Explorer copies it with its own progress window while GoRex
+  stays responsive. On macOS and Linux, GoRex downloads the copy as the
+  drag starts, with a toast showing the progress.
 - Fixed: labels in omp's charts were drawn twice, slightly apart.
 - Fixed: the mouse wheel could not scroll long lists in omp, such as
   `/login`'s providers, past the chosen row.

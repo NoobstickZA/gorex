@@ -538,19 +538,9 @@ func (s *Stream) sync() error {
 // readOK reads the server's answer to an attach, a byte at a time so as
 // to read nothing past it.
 func readOK(conn net.Conn) error {
-	var line []byte
-	b := make([]byte, 1)
-	for {
-		if _, err := conn.Read(b); err != nil {
-			return err
-		}
-		if b[0] == '\n' {
-			break
-		}
-		line = append(line, b[0])
-		if len(line) > 4096 {
-			return errors.New("rex: bad answer")
-		}
+	line, err := readLine(conn)
+	if err != nil {
+		return err
 	}
 	var res struct {
 		OK    bool   `json:"ok"`
@@ -563,6 +553,25 @@ func readOK(conn net.Conn) error {
 		return errors.New(res.Error)
 	}
 	return nil
+}
+
+// readLine reads a line of the server's, a byte at a time so as to read
+// nothing past it, without its newline.
+func readLine(conn net.Conn) ([]byte, error) {
+	var line []byte
+	b := make([]byte, 1)
+	for {
+		if _, err := conn.Read(b); err != nil {
+			return nil, err
+		}
+		if b[0] == '\n' {
+			return line, nil
+		}
+		line = append(line, b[0])
+		if len(line) > 4096 {
+			return nil, errors.New("rex: bad answer")
+		}
+	}
 }
 
 func (s *Stream) wait() (net.Conn, *bufio.Reader, error) {

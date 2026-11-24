@@ -737,6 +737,16 @@ func (a *App) attach(p *Pane, cols, rows int) {
 		OnPasteStatus: func(pr terminal.PasteProgress) {
 			update(func() { a.pasteStatus(p, pr.Status, int(pr.Sent), int(pr.Total)) })
 		},
+		// Files dropped on a host's terminal go to the host first, and
+		// their paths there are pasted; on this machine's, the terminal
+		// pastes their own.
+		OnDrop: func(paths []string) bool {
+			if !a.bind.host() {
+				return false
+			}
+			a.dropOnTerminal(p, paths)
+			return true
+		},
 		OnTitle: func(title string) {
 			update(func() { p.title = title })
 		},

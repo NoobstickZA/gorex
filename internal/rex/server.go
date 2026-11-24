@@ -189,6 +189,16 @@ func (s *Server) handle(conn net.Conn) {
 		ss.attach(conn, a)
 		return
 	}
+	var u Upload
+	if json.Unmarshal(first, &u) == nil && u.Op == "upload" {
+		s.upload(conn, r, u)
+		return
+	}
+	var d Download
+	if json.Unmarshal(first, &d) == nil && d.Op == "download" {
+		s.download(conn, d)
+		return
+	}
 	s.control(conn, r, first)
 }
 

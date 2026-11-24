@@ -21,7 +21,7 @@ import (
 )
 
 // ProtocolVersion changes whenever the wire protocol does.
-const ProtocolVersion = 9
+const ProtocolVersion = 10
 
 // BridgeReady starts the line a bridge prints before it multiplexes its
 // standard input and output; the rest of the line is its executable.
