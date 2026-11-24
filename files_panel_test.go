@@ -21,6 +21,11 @@ func TestFilePanel(t *testing.T) {
 	a.eff = builtin
 	root := testDir(t)
 	defer os.RemoveAll(root)
+	// The shell's folder comes as the system names it, links resolved:
+	// /tmp is /private/tmp on macOS.
+	if real, err := filepath.EvalSymlinks(root); err == nil {
+		root = real
+	}
 	sub := filepath.Join(root, "sub")
 	os.MkdirAll(sub, 0o755)
 	os.WriteFile(filepath.Join(root, "top.txt"), []byte("top\n"), 0o644)
