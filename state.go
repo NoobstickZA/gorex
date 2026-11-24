@@ -1434,11 +1434,7 @@ func (a *App) snapshot() savedLayout {
 	save = func(n *Node) *savedNode {
 		if p := n.Pane; p != nil {
 			if p.Kind == paneEditor {
-				mode := p.edit.mode
-				if mode == modeNative {
-					mode = modePreview // the trial's renderer isn't kept
-				}
-				return &savedNode{Path: p.edit.path, Mode: mode}
+				return &savedNode{Path: p.edit.path, Mode: p.edit.mode}
 			}
 			s := &savedNode{SID: p.SID, Dir: p.info.Dir}
 			if s.Dir == "" {
@@ -1517,7 +1513,7 @@ func (a *App) restore() bool {
 				// An editor: of an editor tab, or a file kept beside a
 				// terminal (Keep in the file popup).
 				p = a.newEditorPane(s.Path)
-				if s.Mode == modeChanges || s.Mode == modePreview {
+				if s.Mode == modeChanges || s.Mode == modePreview || s.Mode == modeNative {
 					p.edit.mode = s.Mode
 				}
 				if viewable(s.Path) != "" {

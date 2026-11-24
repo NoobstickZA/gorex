@@ -254,19 +254,34 @@ func (a *App) editorFollowsPreview(e *fileView) {
 	}()
 }
 
-// togglePreview cycles a file view of a Markdown file through the
-// editor, the web view's preview and MyGo's.
+// previewMode is the mode a Markdown file's preview opens in, by the
+// setting: MyGo's, or the web view's.
+func (a *App) previewMode() string {
+	if a.eff.Editor.MarkdownPreview == "web" {
+		return modePreview
+	}
+	return modeNative
+}
+
+// togglePreview takes a file view of a Markdown file from the editor to
+// the setting's preview, and from either preview back to the editor.
 func (a *App) togglePreview(e *fileView) {
 	if e == nil || !isMarkdown(e.path) {
 		return
 	}
-	switch e.mode {
-	case modePreview:
-		a.switchRenderer(e)
-	case modeNative:
+	switch {
+	case e.mode == modePreview:
+		a.showPreview(e, false)
+	case e.mode == modeNative:
 		e.mode = modeEditor
 		e.keys = true
 		a.changed()
+	case a.previewMode() == modeNative:
+		if e.buf != nil {
+			e.mode = modeNative
+			e.keys = true
+			a.changed()
+		}
 	default:
 		a.showPreview(e, true)
 	}
@@ -610,13 +625,11 @@ func (a *App) openHostPath(e *fileView, target, fragment string) {
 				if h.reveal != nil {
 					h.reveal(target)
 				}
-			case viewable(target) != "":
+			case viewable(target) != "" && e.preview != nil && e.preview.web != nil && e.mode == modePreview:
 				// The engine shows it in the page; Back or Escape returns.
-				if pv := e.preview; pv != nil && pv.web != nil {
-					a.showInPage(pv, target)
-					a.changed()
-				}
-			case isMarkdown(target) || textLike(target):
+				a.showInPage(e.preview, target)
+				a.changed()
+			case viewable(target) != "" || isMarkdown(target) || textLike(target):
 				if h.open != nil {
 					h.open(target, fragment)
 				}
@@ -640,17 +653,22 @@ func textLike(name string) bool {
 	return false
 }
 
-// previewWhenLoaded puts a view into Preview once its file is read, and
-// scrolls to a fragment.
+// previewWhenLoaded puts a view into the setting's preview once its file
+// is read, and scrolls to a fragment.
 func (a *App) previewWhenLoaded(e *fileView, fragment string) {
-	if e.buf != nil {
-		a.showPreview(e, true)
-		if fragment != "" {
-			a.previewScrollTo(e, fragment)
-		}
+	if e.buf == nil {
+		e.previewOnLoad, e.previewFragment = true, fragment
 		return
 	}
-	e.previewOnLoad, e.previewFragment = true, fragment
+	if a.previewMode() == modeNative {
+		e.mode, e.keys, e.previewFragment = modeNative, true, fragment
+		a.changed()
+		return
+	}
+	a.showPreview(e, true)
+	if fragment != "" {
+		a.previewScrollTo(e, fragment)
+	}
 }
 
 // previewScrollTo scrolls a preview to a heading's id, previewScrollToLine

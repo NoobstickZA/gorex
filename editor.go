@@ -105,9 +105,9 @@ type fileView struct {
 	// onDisk notes a file changed or gone on the host since it was read,
 	// while the buffer has changes of its own.
 	onDisk string
-	// preview is the pane's Markdown preview while in that mode;
-	// previewOnLoad asks for it once the file is read, scrolled to
-	// previewFragment.
+	// preview is the pane's Markdown preview of the web view while in that
+	// mode, native MyGo's; previewOnLoad asks for the setting's once the
+	// file is read, scrolled to previewFragment.
 	preview         *previewState
 	native          *nativePreview
 	previewOnLoad   bool
@@ -331,7 +331,7 @@ func (a *App) setFileText(e *fileView, text string, mod time.Time) {
 	if e.previewOnLoad {
 		e.previewOnLoad = false
 		if isMarkdown(e.path) {
-			e.mode = modePreview
+			e.mode = a.previewMode()
 		}
 	}
 	if e.mode == modePreview {

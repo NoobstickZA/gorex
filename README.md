@@ -2,9 +2,10 @@
 
 GoRex is a replica of the [Superlogical Rex](https://www.superlogical.com/updates/public-testing-beginning)
 terminal. It is written in Go with the native UI of [MyGo](https://mygo.egoist.dev)
-and its terminal plugin (libghostty-vt from Ghostty). The terminal and the
-rest of the window are drawn natively; the Markdown and file previews in
-editor tabs use the system's web view. It uses no cgo, and ships as one app
+and its terminal plugin (libghostty-vt from Ghostty). The terminal, the
+Markdown preview and the rest of the window are drawn natively; file
+previews in editor tabs, and the Markdown preview if you choose it, use
+the system's web view. It uses no cgo, and ships as one app
 of about 90 MB.
 
 GoRex is made for [omp](https://omp.sh), the coding agent. It speaks the

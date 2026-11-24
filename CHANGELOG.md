@@ -25,6 +25,11 @@ to build. It also refuses to build a version that is already published.
   moving to the trash or deleting.
 - Reload Window (Ctrl+Shift+F5, ⇧⌘F5 on macOS) starts the window again on
   the same host, with its tabs and sessions.
+- Markdown files now open in MyGo's native preview. It draws Mermaid
+  diagrams, follows links to headings and to other files, and its tables
+  have clearer lines and shaded rows. To use the web view's preview
+  instead, change Settings › Editor › Markdown preview. The chip in the
+  preview's header switches between the two.
 - Fixed: labels in omp's charts were drawn twice, slightly apart.
 - Fixed: the mouse wheel could not scroll long lists in omp, such as
   `/login`'s providers, past the chosen row.

@@ -156,7 +156,8 @@ func mermaidErr(err error) string {
 
 // tspMermaidBlock builds a mermaid code block of the surface's Markdown in
 // pane p: the diagram's figure once its picture is made, else the code;
-// a diagram that can't be drawn shows its code under why.
+// a diagram that can't be drawn shows its code under why. Without a pane,
+// as in the MyGo preview of a file, there is no zoom view to open it in.
 func (a *App) tspMermaidBlock(c *ui.Context, k *colors, p *Pane, b *markdown.CodeBlockView) {
 	if b.Open || !is(a.eff.Editor.Mermaid) {
 		markdown.DefaultCodeBlock(c, b)
@@ -200,7 +201,7 @@ func (a *App) tspMermaidBlock(c *ui.Context, k *colors, p *Pane, b *markdown.Cod
 				}
 			}
 			b.CopyButton(c)
-			if m.err == "" && tspFigureButton(c, k, size, "Open").Clicked() {
+			if m.err == "" && p != nil && tspFigureButton(c, k, size, "Open").Clicked() {
 				open()
 			}
 		})
@@ -212,9 +213,12 @@ func (a *App) tspMermaidBlock(c *ui.Context, k *colors, p *Pane, b *markdown.Cod
 		body.Children(func() {
 			// Centered while narrower than the figure; wider, it scrolls
 			// from its left edge.
-			img := ui.Image(c, m.pic).Size(m.w, m.h).Shrink(0).Margin(0, ui.Auto).Cursor(ui.CursorPointer)
-			if img.Clicked() {
-				open()
+			img := ui.Image(c, m.pic).Size(m.w, m.h).Shrink(0).Margin(0, ui.Auto)
+			if p != nil {
+				img.Cursor(ui.CursorPointer)
+				if img.Clicked() {
+					open()
+				}
 			}
 		})
 	})

@@ -168,8 +168,8 @@ func (a *App) fileHeader(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 				if isMarkdown(e.path) {
 					previewing := e.mode == modePreview || e.mode == modeNative
 					if previewing {
-						// The renderer of the preview: the web view's, or
-						// MyGo's, on trial.
+						// The renderer of the preview: MyGo's, or the web
+						// view's.
 						label, tooltip := "Web", "Shown by the web view. Click to use MyGo's renderer."
 						if e.mode == modeNative {
 							label, tooltip = "MyGo", "Shown by MyGo's renderer. Click to use the web view."
@@ -180,10 +180,7 @@ func (a *App) fileHeader(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 						}
 					}
 					label := "Show Preview"
-					switch e.mode {
-					case modePreview:
-						label = "Show MyGo Preview"
-					case modeNative:
+					if previewing {
 						label = "Show Editor"
 					}
 					eye := iconButton(c, k, "eye", label, 26, 15).Tooltip(tip(label, &cmdTogglePreview))

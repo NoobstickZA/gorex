@@ -31,8 +31,29 @@ func TestPreviewURLs(t *testing.T) {
 	}
 }
 
-// TestPreviewMode: a Markdown file opens in Preview by the setting, and
-// the mode comes back from the layout.
+// TestHostTarget: a link or image of a Markdown file names the host's path
+// relative to the file's folder, or absolute, without its fragment, query
+// or percent escapes, in the host's separators.
+func TestHostTarget(t *testing.T) {
+	was := hostGOOS
+	defer func() { hostGOOS = was }()
+	for _, c := range []struct{ goos, dir, link, want string }{
+		{"linux", "/home/me/docs", "other.md#setup", "/home/me/docs/other.md"},
+		{"linux", "/home/me/docs", "../bugs/my%20bug.md?x=1", "/home/me/bugs/my bug.md"},
+		{"linux", "/home/me/docs", "/etc/hosts", "/etc/hosts"},
+		{"windows", `C:\docs`, "sub/a b.md", `C:\docs\sub\a b.md`},
+		{"windows", `C:\docs`, "D:/x/y.md", `D:\x\y.md`},
+	} {
+		hostGOOS = c.goos
+		if got := hostTarget(c.dir, c.link); got != c.want {
+			t.Errorf("%s %q %q: %q, want %q", c.goos, c.dir, c.link, got, c.want)
+		}
+	}
+}
+
+// TestPreviewMode: a Markdown file opens in Preview by the setting, MyGo's
+// unless the setting says the web view's, and the mode comes back from
+// the layout.
 func TestPreviewMode(t *testing.T) {
 	a, tt := newTestApp(t)
 	a.eff = builtin
@@ -44,12 +65,11 @@ func TestPreviewMode(t *testing.T) {
 	a.openFile(tab, filepath.Join(root, "README.md"), false)
 	p := tab.treeFocus()
 	waitFor(t, tt, "the file", func() bool { return p.edit.buf != nil })
-	if p.edit.mode != modePreview {
-		t.Errorf("mode %q, want preview by the setting", p.edit.mode)
+	if p.edit.mode != modeNative {
+		t.Errorf("mode %q, want MyGo's preview by the setting", p.edit.mode)
 	}
-	// Without a window there is no web view: the pane shows the note.
 	tt.Frame()
-	if !tt.HasText("No preview") && !tt.HasText("Preview") {
+	if !tt.HasText("Hi") {
 		t.Errorf("preview pane: %q", tt.Texts())
 	}
 	a.openFile(tab, filepath.Join(root, "a.go"), false)
@@ -59,11 +79,24 @@ func TestPreviewMode(t *testing.T) {
 	}
 	// The layout keeps Preview.
 	a.openFile(tab, filepath.Join(root, "README.md"), false)
-	waitFor(t, tt, "README again", func() bool { return p.edit.buf != nil && p.edit.mode == modePreview })
+	waitFor(t, tt, "README again", func() bool { return p.edit.buf != nil && p.edit.mode == modeNative })
 	snap := a.snapshot()
 	st := snap.Tabs[len(snap.Tabs)-1]
-	if st.Root.Path != filepath.Join(root, "README.md") || st.Root.Mode != modePreview {
+	if st.Root.Path != filepath.Join(root, "README.md") || st.Root.Mode != modeNative {
 		t.Errorf("saved %+v", st.Root)
+	}
+	a.eff.Editor.MarkdownPreview = "web"
+	a.openFile(tab, filepath.Join(root, "a.go"), false)
+	waitFor(t, tt, "a.go", func() bool { return p.edit.path == filepath.Join(root, "a.go") && p.edit.buf != nil })
+	a.openFile(tab, filepath.Join(root, "README.md"), false)
+	waitFor(t, tt, "README in the web view's", func() bool { return p.edit.path == filepath.Join(root, "README.md") && p.edit.buf != nil })
+	if p.edit.mode != modePreview {
+		t.Errorf("with the web view's preview, mode %q", p.edit.mode)
+	}
+	// Without a window there is no web view: the pane shows the note.
+	tt.Frame()
+	if !tt.HasText("No preview") && !tt.HasText("Preview") {
+		t.Errorf("preview pane: %q", tt.Texts())
 	}
 	off := new(false)
 	a.eff.Editor.PreviewOnOpen = off

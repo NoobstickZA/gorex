@@ -240,10 +240,12 @@ type Editor struct {
 	// Peek shows a card of a file's start as the pointer rests on its
 	// row in a file browser (files_glance.go).
 	Peek *bool `json:"peek,omitempty" kind:"pc" label:"Peek at files on hover" group:"Files"`
-	// PreviewOnOpen opens Markdown files in Preview; Mermaid draws the
-	// diagrams in them and in omp's transcripts.
-	PreviewOnOpen *bool `json:"previewOnOpen,omitempty" kind:"pc" label:"Open Markdown files in Preview" group:"Preview"`
-	Mermaid       *bool `json:"mermaid,omitempty" kind:"pc" label:"Draw Mermaid diagrams" group:"Preview"`
+	// PreviewOnOpen opens Markdown files in Preview; MarkdownPreview is
+	// "mygo" or "web": which shows it, MyGo's renderer or the web view;
+	// Mermaid draws the diagrams in it and in omp's transcripts.
+	PreviewOnOpen   *bool  `json:"previewOnOpen,omitempty" kind:"pc" label:"Open Markdown files in Preview" group:"Preview"`
+	MarkdownPreview string `json:"markdownPreview,omitempty" kind:"pc" label:"Markdown preview" group:"Preview"`
+	Mermaid         *bool  `json:"mermaid,omitempty" kind:"pc" label:"Draw Mermaid diagrams" group:"Preview"`
 }
 
 const defaultFontSize = 11.6
@@ -261,7 +263,7 @@ var builtin = Settings{
 		FileClick: "popup", FileCtrlClick: "tab", FileLinks: on},
 	Editor: Editor{
 		LineHeight: 1.5, WrapGuides: "100", SoftWrap: off, DiffLayout: "split", DiffInline: "words",
-		HiddenFiles: on, MaxFile: 8 << 20, OpenOn: "click", Peek: on, PreviewOnOpen: on, Mermaid: on,
+		HiddenFiles: on, MaxFile: 8 << 20, OpenOn: "click", Peek: on, PreviewOnOpen: on, MarkdownPreview: "mygo", Mermaid: on,
 	},
 	Shell: Shell{Login: on, StartIn: "current"},
 	General: General{
