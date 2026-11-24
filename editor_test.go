@@ -336,3 +336,29 @@ func TestBrowserRevealsFocusedFile(t *testing.T) {
 	a.changed()
 	waitFor(t, tt, "inner's row again", func() bool { return b.row >= 0 && b.tree.Item(b.row) == inner })
 }
+
+// TestNativePreviewFollowsReload: MyGo's preview of a Markdown file shows
+// its new text once the file is read again, as when it changed on disk,
+// though the new buffer's version is the old one's.
+func TestNativePreviewFollowsReload(t *testing.T) {
+	a, tt := newTestApp(t)
+	a.eff = builtin
+	root := testDir(t)
+	defer os.RemoveAll(root)
+	file := filepath.Join(root, "notes.md")
+	os.WriteFile(file, []byte("# Notes\n\nThe first draft.\n"), 0o644)
+	tab := a.newEditorTab(root)
+	a.openFile(tab, file, false)
+	ed := tab.treeFocus()
+	waitFor(t, tt, "the file", func() bool { return ed.edit.buf != nil })
+	ed.edit.mode = modeNative
+	waitFor(t, tt, "the first draft", func() bool { return tt.HasText("The first draft.") })
+
+	os.WriteFile(file, []byte("# Notes\n\nThe second draft.\n"), 0o644)
+	old := ed.edit.buf
+	a.reloadFile(ed.edit)
+	waitFor(t, tt, "the file read again", func() bool { return ed.edit.buf != old && ed.edit.buf != nil })
+	waitFor(t, tt, "the second draft in the preview", func() bool {
+		return tt.HasText("The second draft.") && !tt.HasText("The first draft.")
+	})
+}

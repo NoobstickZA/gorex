@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown"
 )
 
@@ -22,10 +23,11 @@ import (
 const modeNative = "native"
 
 // nativePreview is an editor pane's MyGo preview: the text it shows, of
-// the buffer's version it has, and the view's options, made anew for
-// each file, which load its images from its directory.
+// the buffer and its version it has, and the view's options, made anew
+// for each file, which load its images from its directory.
 type nativePreview struct {
 	path    string
+	buf     *editor.Buffer
 	text    string
 	version uint64
 	due     bool
@@ -48,11 +50,13 @@ func (a *App) switchRenderer(e *fileView) {
 }
 
 // nativeBody draws the MyGo preview of a view's buffer, which follows
-// edits a moment after them, as the web view's does.
+// edits a moment after them, as the web view's does. A file read again,
+// as when it changed on disk, is a new buffer, whose versions start
+// again: the preview starts again from its text.
 func (a *App) nativeBody(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 	np := e.native
-	if np == nil || np.path != e.path {
-		np = &nativePreview{path: e.path, text: e.buf.String(), version: e.buf.Version()}
+	if np == nil || np.path != e.path || np.buf != e.buf {
+		np = &nativePreview{path: e.path, buf: e.buf, text: e.buf.String(), version: e.buf.Version()}
 		np.opts = &markdown.Options{LoadImage: a.hostImages(dirName(e.path))}
 		e.native = np
 	}
