@@ -51,7 +51,10 @@ func TestFileOps(t *testing.T) {
 	if err := c.CreateFile(p("src", "a.txt")); err != nil {
 		t.Fatal(err)
 	}
+	// WriteFile's mode is a new file's only: Chmod gives this one the mode
+	// the copy below must keep.
 	os.WriteFile(p("src", "a.txt"), []byte("hello"), 0o640)
+	os.Chmod(p("src", "a.txt"), 0o640)
 	if err := c.CreateFile(p("src", "a.txt")); err == nil {
 		t.Error("createFile replaced a file")
 	}

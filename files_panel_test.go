@@ -66,26 +66,37 @@ func TestFilePanel(t *testing.T) {
 	}
 	a.dropPeek()
 
-	// While a program runs, the folder it works in leaves the root alone;
-	// back at the prompt, the panel follows.
-	p.term.Send([]byte(testShell.run + "\r"))
+	// A program working in another folder leaves the root alone, and it
+	// stays as the shell, still in sub, is back at its prompt. The program
+	// changes its own folder, not the shell's: a cd at the prompt before
+	// it would leave the shell idle in the new folder for a moment, which
+	// the panel rightly follows.
+	prog, progDir := `sh -c 'cd /usr/bin && sleep 3'`, "/usr/bin"
+	if runtime.GOOS == "windows" {
+		progDir = os.Getenv("SystemRoot")
+		prog = `cmd /c "cd /d ` + progDir + ` && ping -n 4 127.0.0.1 >nul"`
+	}
+	p.term.Send([]byte(prog + "\r"))
 	waitFor(t, tt, "the program", func() bool {
 		refresh(a)
-		return !p.info.Idle && samePath(p.info.Dir, testShell.dir)
+		return !p.info.Idle && samePath(p.info.Dir, progDir)
 	})
 	tt.Frame()
 	if !samePath(b.root, sub) {
 		t.Errorf("the panel moved to %q while a program ran", b.root)
 	}
-	waitFor(t, tt, "the program to end", at(testShell.dir))
-	waitFor(t, tt, "the panel to follow after the program", func() bool { tt.Frame(); return samePath(b.root, testShell.dir) })
+	waitFor(t, tt, "the program to end", at(sub))
+	tt.Frame()
+	if !samePath(b.root, sub) {
+		t.Errorf("the panel moved to %q after the program", b.root)
+	}
 
 	// Pinned, it stays; unpinned, it follows at once.
 	a.togglePin(tab.Browser)
 	a.cdHere(tab, root)
 	waitFor(t, tt, "the shell back in the test folder", at(root))
 	tt.Frame()
-	if !samePath(b.root, testShell.dir) {
+	if !samePath(b.root, sub) {
 		t.Errorf("the pinned panel moved to %q", b.root)
 	}
 	a.togglePin(tab.Browser)
