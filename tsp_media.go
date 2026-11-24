@@ -437,23 +437,32 @@ func mediaDecode(data []byte) (*ui.Bitmap, error) {
 // pane's working directory, in an editor tab: pictures in GoRex's viewer
 // page and PDF, HTML, video and audio in the engine's (View), text and
 // code in the editor; for another file it says GoRex can't show it. The
-// tab is the first editor tab, else a new one in the file's folder.
-func (a *App) openPaneFile(p *Pane, path string) {
+// tab is the first editor tab, else a new one in the file's folder. It
+// returns the view showing the file, nil for none.
+func (a *App) openPaneFile(p *Pane, path string) *fileView {
 	file := mediaPath(p, path)
 	if !mediaOpenable(file) {
 		a.toast(ui.Toast{Title: "Can't show " + baseName(file), Description: "GoRex's viewer and editor can't open this kind of file.", Timeout: 4 * time.Second})
-		return
+		return nil
 	}
+	var tab *Tab
 	for i, t := range a.tabs {
 		if t.Kind == paneEditor {
 			a.selectTab(i)
-			a.openFile(t, file, false)
-			return
+			tab = t
+			break
 		}
 	}
-	if t := a.newEditorTab(dirName(file)); t != nil {
-		a.openFile(t, file, false)
+	if tab == nil {
+		if tab = a.newEditorTab(dirName(file)); tab == nil {
+			return nil
+		}
 	}
+	a.openFile(tab, file, false)
+	if np := tab.treeFocus(); np != nil && np.edit != nil && np.edit.path == file {
+		return np.edit
+	}
+	return nil
 }
 
 // mediaOpenable reports whether GoRex's editor tab shows a file: in

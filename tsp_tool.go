@@ -51,7 +51,8 @@ func (a *App) tspTool(c *ui.Context, key *ui.Context, k *colors, t *Tab, p *Pane
 					link.Children(func() {
 						a.tspToolTarget(c, k, target, kind, true, hover).Shrink(1).MinWidth(0)
 					})
-					opened = a.fileLink(link, p, file)
+					// At the lines the call read or wrote (line_marks.go).
+					opened = a.fileLink(link, p, file, func() *lineMarks { return toolLineMarks(n, file) })
 				} else {
 					a.tspToolTarget(c, k, target, kind, false, false).Shrink(1).MinWidth(0)
 				}
@@ -97,9 +98,12 @@ func (a *App) tspTool(c *ui.Context, key *ui.Context, k *colors, t *Tab, p *Pane
 		}
 		drawBody := func() {
 			a.tspFlat++
+			outer := a.tspToolName
+			a.tspToolName = name
 			for _, ch := range body {
 				a.tspNode(c, k, t, p, sf, ch)
 			}
+			a.tspToolName = outer
 			a.tspFlat--
 		}
 		if !collapsed {

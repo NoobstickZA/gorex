@@ -134,7 +134,17 @@ func (a *App) tspCutText(c *ui.Context, spans []ui.Span, hrefs []string, truncat
 				spans[i].Underline = spans[i].Underline || hrefs[i] == link
 			}
 		}
-		if a.fileLink(box, a.tspPane, file) {
+		// A row of a tool's files names the lines after the file's name
+		// (design.md:626-632): a click opens the file at them.
+		tool := a.tspToolName
+		marks := func() *lineMarks {
+			var row strings.Builder
+			for _, sp := range spans {
+				row.WriteString(sp.Text)
+			}
+			return textLineMarks(row.String(), file, tool)
+		}
+		if a.fileLink(box, a.tspPane, file, marks) {
 			a.tspLinkClicked = true
 		}
 	} else if link != "" {

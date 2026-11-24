@@ -273,6 +273,7 @@ func (a *App) fileBody(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 		if e.wrap != nil {
 			wrap = *e.wrap
 		}
+		a.showLineMarks(e, k)
 		if e.mode == modeNative {
 			a.nativeBody(c, k, e, h)
 		} else if e.mode == modePreview {

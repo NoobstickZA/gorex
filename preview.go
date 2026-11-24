@@ -497,10 +497,15 @@ func (a *App) renderPreview(e *fileView) {
 				code = "gorexSetBase(" + string(bjs) + "); "
 			}
 			keep := path == pv.path
+			post := ""
+			if m := e.marks; m != nil && m.inWeb {
+				// The page read again, of the same text: the marks again.
+				post = ".then(r => { " + strings.TrimPrefix(a.markLinesJS(m, a.k, false), "return ") + "; return r })"
+			}
 			go func() {
 				html := markdown.Render(text)
 				js, _ := json.Marshal(html)
-				_, err := web.Page().Eval(code + fmt.Sprintf("return gorexSetContent(%s, %v)", js, keep))
+				_, err := web.Page().Eval(code + fmt.Sprintf("return gorexSetContent(%s, %v)%s", js, keep, post))
 				a.update(func() {
 					if e.preview != pv {
 						return
@@ -689,13 +694,20 @@ func (a *App) previewEval(e *fileView, code string) {
 		return
 	}
 	web := pv.web
-	settled := pv.loaded && !pv.due && !pv.busy && e.buf != nil && pv.version == e.buf.Version() && pv.path == e.path
+	settled := previewSettled(e)
 	go func() {
 		if !settled {
 			time.Sleep(previewDebounce + 250*time.Millisecond)
 		}
 		web.Page().Eval(code)
 	}()
+}
+
+// previewSettled reports whether a view's page shows its buffer as it is,
+// with no render due or running.
+func previewSettled(e *fileView) bool {
+	pv := e.preview
+	return pv != nil && pv.web != nil && pv.loaded && !pv.due && !pv.busy && e.buf != nil && pv.version == e.buf.Version() && pv.path == e.path
 }
 
 // editorLanguage reports whether the editor knows a language for a file

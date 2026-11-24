@@ -30,6 +30,11 @@ to build. It also refuses to build a version that is already published.
   have clearer lines and shaded rows. To use the web view's preview
   instead, change Settings › Editor › Markdown preview. The chip in the
   preview's header switches between the two.
+- Click the file name in one of omp's Read or Edit cards, and the file
+  opens at the lines omp read or changed, coloured: green for a read,
+  amber for an edit. Markdown previews colour the paragraphs, lists and
+  code blocks those lines are in. The colour goes away when you edit the
+  file.
 - Fixed: labels in omp's charts were drawn twice, slightly apart.
 - Fixed: the mouse wheel could not scroll long lists in omp, such as
   `/login`'s providers, past the chosen row.

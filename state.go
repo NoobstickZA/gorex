@@ -347,8 +347,11 @@ type App struct {
 	// own, as the dock's composer card is theirs (tspComposer).
 	tspFieldBare bool
 	// tspFlat counts the tool bodies being drawn: the cards and tools in
-	// one are drawn bare, as sections of its frame.
-	tspFlat int
+	// one are drawn bare, as sections of its frame. tspToolName is the
+	// name of the innermost of them (read, edit…), whose file rows open
+	// their files at the lines they name (line_marks.go).
+	tspFlat     int
+	tspToolName string
 	// tspPane is the pane whose surfaces are being drawn, over which
 	// their file links open; tspLinkClicked tells that a click in this
 	// frame opened a file link, which a head around it does not fold.

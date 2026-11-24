@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown"
+	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // The MyGo preview of an editor pane: MyGo's ui/markdown shows the buffer
@@ -33,8 +34,12 @@ type nativePreview struct {
 	version uint64
 	due     bool
 	opts    *markdown.Options
-	// k is the palette of the last frame, which Mermaid's figures take.
-	k *colors
+	// k is the palette of the last frame, which Mermaid's figures and the
+	// marked lines take; starts are the line starts of text, and viewH
+	// the height of the view as last laid out, for the marked lines.
+	k      *colors
+	starts []int
+	viewH  float32
 }
 
 // switchRenderer moves a view in preview between the web view's preview
@@ -83,10 +88,16 @@ func (a *App) nativeBody(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 				if e.native != np || e.buf == nil {
 					return
 				}
-				np.text, np.version = e.buf.String(), e.buf.Version()
+				np.text, np.version, np.starts = e.buf.String(), e.buf.Version(), nil
 				a.changed()
 			})
 		})
+	}
+	// Each block is asked about while there are marked lines; without,
+	// the blocks are built as they are.
+	np.opts.Block = nil
+	if e.marks != nil {
+		np.opts.Block = func(c *ui.Context, d *parser.Document, i int) bool { return a.nativeMarkBlock(c, e, np, d, i) }
 	}
 	np.opts.Theme = &markdown.Theme{
 		Text: k.text, Muted: k.textMuted, Link: k.busy, CodeFont: a.editorFont().Family,
@@ -97,6 +108,7 @@ func (a *App) nativeBody(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 		TableCellPadding: [2]float32{0.75, 0.45}, TableMaxColumn: 60,
 	}
 	s := ui.Scroll(c.Key("native-preview")).Grow(1).MinHeight(0).Background(k.bgBottom).Padding(16, 28).Focusable()
+	np.viewH = s.Bounds().H
 	s.Children(func() {
 		markdown.View(c, np.text, np.opts)
 	})

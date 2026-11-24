@@ -1946,7 +1946,7 @@ func (a *App) tspFileSpan(c *ui.Context, sp ui.Span, file string) {
 	w := ui.RichText(c)
 	sp.Underline = w.Hovered()
 	w.Children(func() { ui.RichText(c, sp) })
-	if a.fileLink(w, a.tspPane, file) {
+	if a.fileLink(w, a.tspPane, file, nil) {
 		a.tspLinkClicked = true
 	}
 }

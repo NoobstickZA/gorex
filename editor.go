@@ -112,6 +112,9 @@ type fileView struct {
 	native          *nativePreview
 	previewOnLoad   bool
 	previewFragment string
+	// marks are the lines a tool call of omp's read or wrote, which the
+	// view shows coloured (line_marks.go).
+	marks *lineMarks
 	// keys asks the view to take the keys as it is next drawn.
 	keys bool
 	// host is the place that drew the view last: what its links to

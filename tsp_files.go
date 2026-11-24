@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -122,11 +123,11 @@ func looksLikeFile(code string) bool {
 }
 
 // tspOpenLink opens a link of a message: a file of the host's as a click
-// on it does (with Ctrl, or ⌘ on macOS, held now or not), a web address
-// in the browser.
+// on it does (with Ctrl, or ⌘ on macOS, held now or not), at the line the
+// link names; a web address in the browser.
 func (a *App) tspOpenLink(c *ui.Context, p *Pane, dest string) {
 	if file := tspFileHref(dest); file != "" {
-		a.openFileBy(p, file, c.Modifiers()&(ui.Ctrl|ui.Cmd) != 0)
+		a.markLines(a.openFileBy(p, file, c.Modifiers()&(ui.Ctrl|ui.Cmd) != 0), hrefLineMarks(dest))
 		return
 	}
 	if webURL(dest) {
@@ -139,10 +140,10 @@ func (a *App) tspOpenLink(c *ui.Context, p *Pane, dest string) {
 func (a *App) tspLinkItems(m *ui.Menu, p *Pane, dest string) {
 	if file := tspFileHref(dest); file != "" {
 		if m.Item("Open in Popup").Chosen() {
-			a.openPeek(p, file)
+			a.markLines(a.openPeek(p, file), hrefLineMarks(dest))
 		}
 		if m.Item("Open in Editor Tab").Chosen() {
-			a.openPaneFile(p, file)
+			a.markLines(a.openPaneFile(p, file), hrefLineMarks(dest))
 		}
 		if m.Item("Copy Path").Chosen() {
 			a.copyLink(file)
@@ -167,32 +168,53 @@ func tspFileHref(href string) string {
 	return hostPathOf(u)
 }
 
+// hrefLineMarks goes to the line a file link names, as omp writes it
+// (file:///x/main.go?line=12), from 1; nil for none.
+func hrefLineMarks(href string) *lineMarks {
+	u, err := url.Parse(href)
+	if err != nil {
+		return nil
+	}
+	n, err := strconv.Atoi(u.Query().Get("line"))
+	if err != nil || n < 1 {
+		return nil
+	}
+	return &lineMarks{line: n - 1}
+}
+
 // openFileBy opens a file of the host's as a click on it does: with Ctrl
-// (⌘ on macOS), or without.
-func (a *App) openFileBy(p *Pane, path string, ctrl bool) {
+// (⌘ on macOS), or without. It returns the view showing it, nil for none.
+func (a *App) openFileBy(p *Pane, path string, ctrl bool) *fileView {
 	how := a.eff.OMP.FileClick
 	if ctrl {
 		how = a.eff.OMP.FileCtrlClick
 	}
 	switch how {
 	case "popup":
-		a.openPeek(p, path)
+		return a.openPeek(p, path)
 	case "tab":
-		a.openPaneFile(p, path)
+		return a.openPaneFile(p, path)
 	}
+	return nil
 }
 
 // fileLink makes el, a file's name, open the file on a click, as the
-// settings say, with a menu to open it either way or copy its path. It
-// reports whether el was clicked.
-func (a *App) fileLink(el ui.Element, p *Pane, path string) bool {
+// settings say, with a menu to open it either way or copy its path; at
+// the lines marks gives, when there is marks. It reports whether el was
+// clicked.
+func (a *App) fileLink(el ui.Element, p *Pane, path string, marks func() *lineMarks) bool {
+	mark := func(e *fileView) {
+		if marks != nil {
+			a.markLines(e, marks())
+		}
+	}
 	el.Cursor(ui.CursorPointer).Tooltip(path + "\nClick: " + fileHow(a.eff.OMP.FileClick) + " · Ctrl+click: " + fileHow(a.eff.OMP.FileCtrlClick))
 	el.ContextMenu(func(m *ui.Menu) {
 		if m.Item("Open in Popup").Chosen() {
-			a.openPeek(p, path)
+			mark(a.openPeek(p, path))
 		}
 		if m.Item("Open in Editor Tab").Chosen() {
-			a.openPaneFile(p, path)
+			mark(a.openPaneFile(p, path))
 		}
 		if m.Item("Copy Path").Chosen() {
 			a.copyLink(path)
@@ -201,7 +223,7 @@ func (a *App) fileLink(el ui.Element, p *Pane, path string) bool {
 	if !el.Clicked() {
 		return false
 	}
-	a.openFileBy(p, path, el.ClickModifiers()&(ui.Ctrl|ui.Cmd) != 0)
+	mark(a.openFileBy(p, path, el.ClickModifiers()&(ui.Ctrl|ui.Cmd) != 0))
 	return true
 }
 
@@ -217,24 +239,24 @@ func fileHow(how string) string {
 }
 
 // openPeek shows a file of the host's in the popup over pane p, in place
-// of the one it shows.
-func (a *App) openPeek(p *Pane, path string) {
+// of the one it shows, and returns its view; nil when it can't.
+func (a *App) openPeek(p *Pane, path string) *fileView {
 	file := mediaPath(p, path)
 	if !mediaOpenable(file) {
 		a.toast(ui.Toast{Title: "Can't show " + baseName(file), Description: "GoRex's viewer and editor can't open this kind of file.", Timeout: 4 * time.Second})
-		return
+		return nil
 	}
 	if a.bind.noFiles() {
 		a.toast(ui.Toast{ID: "plain/editor", Title: "Can't show " + baseName(file), Description: a.noFilesReason() + ".", Timeout: 4 * time.Second})
-		return
+		return nil
 	}
 	big := false
 	if pk := a.peek; pk != nil {
 		if pk.view.path == file {
-			return
+			return pk.view
 		}
 		if !a.confirmFile(pk.view) {
-			return
+			return nil
 		}
 		big = pk.big
 		a.dropPeek()
@@ -248,6 +270,7 @@ func (a *App) openPeek(p *Pane, path string) {
 	e.keys = true
 	a.peek = &filePeek{view: e, over: p, big: big}
 	a.changed()
+	return e
 }
 
 // closePeek closes the popup, asking first about unsaved changes; the pane
