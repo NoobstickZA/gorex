@@ -337,7 +337,9 @@ func (a *App) fileFocus(v ui.Element, e *fileView, h *fileHost) {
 		v.Focus()
 		e.keys = false
 	}
-	if v.Focused() && !h.focused {
+	// Focus inside the view counts: a click on the text of MyGo's
+	// preview gives it to the document, which is selectable.
+	if v.FocusWithin() && !h.focused {
 		h.take()
 	}
 }
