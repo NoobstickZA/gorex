@@ -4,6 +4,35 @@ Each release's version is its heading in this file. The `version` in
 `mygo.json` must match the top heading. Otherwise `make website` refuses
 to build. It also refuses to build a version that is already published.
 
+## 0.1.17
+
+- Terminal tabs can show a file panel, as in Tern: press Ctrl+Shift+E
+  (⇧⌘E on macOS) or choose Show Files in the command palette. The panel
+  follows the shell: after a `cd`, it moves to the new folder once the
+  shell is back at its prompt. The pin in its header keeps it on a folder.
+  Click a file to open it in the popup over the terminal. Right-click for
+  New Tab Here, Split Here, cd Here, Copy Path and more.
+- Split Down's shortcut is now Ctrl+Shift+− on Windows and Linux, because
+  Ctrl+Shift+E opens the file panel. On macOS it stays ⇧⌘D.
+- Peek: rest the pointer on a file in the file panel or an editor tab's
+  tree, and a card shows the start of the file: Markdown rendered, code
+  highlighted, pictures. Space shows it for the chosen file. Turn it off
+  in Settings › Editor.
+- The file panel and the editor tab's tree can create, rename, duplicate,
+  cut, copy, paste and delete files and folders, on ssh hosts too. Move to
+  Trash uses the Recycle Bin on Windows, the Trash on macOS, and the
+  desktop's trash on Linux where there is one. GoRex always asks before
+  moving to the trash or deleting.
+- Reload Window (Ctrl+Shift+F5, ⇧⌘F5 on macOS) starts the window again on
+  the same host, with its tabs and sessions.
+- Fixed: labels in omp's charts were drawn twice, slightly apart.
+- Fixed: the mouse wheel could not scroll long lists in omp, such as
+  `/login`'s providers, past the chosen row.
+- This version's session server knows the new file operations. On
+  Windows, the server already running keeps running, with your sessions;
+  until you use Restart Session Server…, the file operations say that the
+  server needs replacing.
+
 ## 0.1.16
 
 - omp's native view (the Tern Surface Protocol) is now on by default, and
