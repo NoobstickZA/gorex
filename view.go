@@ -589,6 +589,21 @@ func (a *App) paneHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, hov
 			if !show {
 				return
 			}
+			if t.Kind == paneTerminal && !a.bind.noFiles() {
+				// The tab's file panel, open or closed, as ⇧⌘E does.
+				label := "Show Files"
+				if t.FilesOpen {
+					label = "Hide Files"
+				}
+				files := iconButton(c, k, "folder-tree", label, 26, 15).Tooltip(tip(label, &cmdToggleFiles))
+				if t.FilesOpen {
+					files.Background(k.pressed)
+				}
+				if files.Clicked() {
+					t.setFocus(p)
+					a.toggleFiles()
+				}
+			}
 			if a.bind.serial == "" {
 				// A serial port's one session takes no splits.
 				if iconButton(c, k, "columns-2", "Split Right", 26, 16).Tooltip(tip("Split Right", &cmdSplitRight)).Clicked() {

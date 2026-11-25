@@ -271,7 +271,8 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
     modified, **A** added, **D** deleted, **R** renamed, **U** untracked,
     **C** conflict. A folder shows the strongest mark inside it. Ignored
     files are dimmed.
-- **The file panel** (⇧⌘E / Ctrl+Shift+E, or Show Files in the palette). A
+- **The file panel** (⇧⌘E / Ctrl+Shift+E, the folder button in a terminal
+  pane's header, or Show Files in the palette). A
   terminal tab can show the host's files on its left, as Tern does.
   - The panel opens on the focused terminal's folder and follows it: after
     a `cd` in the shell, it moves to the new folder. It waits while a

@@ -4,6 +4,12 @@ Each release's version is its heading in this file. The `version` in
 `mygo.json` must match the top heading. Otherwise `make website` refuses
 to build. It also refuses to build a version that is already published.
 
+## 0.1.19
+
+- A terminal pane's header has a Show Files button beside Split Right,
+  which opens or closes the tab's file panel, as Ctrl+Shift+E (⇧⌘E on
+  macOS) does.
+
 ## 0.1.18
 
 - Packet captures (`.pcap`, `.pcapng`, `.cap`, and gzipped ones) open in
