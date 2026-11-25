@@ -87,6 +87,7 @@ build() {
 	if [ -n "$mac" ]; then
 		echo "website: building $mac on $MAC_HOST"
 		$SSH "$MAC_HOST" "set -e; cd $MAC_DIR; git fetch -q origin; git checkout -q -B master $head; rm -rf $SITE_BUILD;
+			sh tools/webshark/build.sh;
 			MYGO_UPDATER_PRIVATE_KEY=\"\$(cat \"\$HOME/Library/Application Support/mygo/update-keys/mygo-update.key\")\" go tool mygo build -platform $mac -o $SITE_BUILD"
 		for p in $(echo "$mac" | tr , ' '); do
 			t=$(echo "$p" | tr / -)

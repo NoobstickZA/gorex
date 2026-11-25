@@ -296,6 +296,20 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
     you can scroll it. Click the file's name at its top to open it.
   - Space shows the card of the chosen file, and Escape closes it.
   - Turn it off in Settings › Editor › Peek at files on hover.
+- **Packet captures.** A `.pcap`, `.pcapng` or `.cap` file, gzipped or
+  not, opens in [webshark](https://github.com/hepictel/webshark), which
+  shows it as Wireshark does: the packet list, details, bytes, filters,
+  Follow Stream, conversations, VoIP calls and more. It runs in the
+  window, with Wireshark compiled to WebAssembly, so nothing needs to be
+  installed, and captures on ssh hosts open where they are.
+  - A capture still being written, as by `tcpdump -w`, grows in the packet
+    list as it is written.
+  - Very large captures, over 1 to 2 GB, may not open, as the whole
+    capture is held in the page's memory.
+  - webshark is licensed under the AGPL 3.0, and Wireshark under the GPL
+    2.0. GoRex ships webshark's build in `resources/webshark`, made by
+    `tools/webshark/build.sh` from a pinned commit; its `README.md` names
+    the sources and licences.
 - **Working with files.** The file panel and the editor tab's tree create,
   rename, copy, move and delete the host's files, through its session
   server, so ssh hosts work as well.

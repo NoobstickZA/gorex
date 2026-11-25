@@ -4,6 +4,14 @@ Each release's version is its heading in this file. The `version` in
 `mygo.json` must match the top heading. Otherwise `make website` refuses
 to build. It also refuses to build a version that is already published.
 
+## 0.1.18
+
+- Packet captures (`.pcap`, `.pcapng`, `.cap`, and gzipped ones) open in
+  webshark, Wireshark in the window, from the file panel, an editor tab's
+  tree or a link, on ssh hosts too. A capture that is still being written,
+  as by `tcpdump -w`, grows in the packet list. RTP audio may not play
+  yet.
+
 ## 0.1.17
 
 - Terminal tabs can show a file panel, as in Tern: press Ctrl+Shift+E

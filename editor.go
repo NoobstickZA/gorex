@@ -887,7 +887,8 @@ func (a *App) checkFile(e *fileView) {
 				e.onDisk = ""
 			case view:
 				e.modTime, e.onDisk = fi.ModTime, ""
-				if !had.IsZero() {
+				// webshark follows its capture as it grows (capture.go).
+				if !had.IsZero() && viewable(path) != "capture" {
 					a.reloadFile(e)
 				}
 			case e.modified():

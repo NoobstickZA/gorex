@@ -94,11 +94,12 @@ SITE_VARS := NAME VERSION SITE_URL SITE_PLATFORMS SITE_BUILD UPDATE_KEY MAC_HOST
 SITE_ARGS = $(foreach v,$(SITE_VARS),'$(v)=$($(v))')
 
 # The resources of this platform, and those of every platform but the
-# servers, which dev builds itself.
+# servers, which dev builds itself, and webshark's build, which comes from
+# its own script (webshark, below).
 rfiles   = $(foreach f,$(wildcard $(1)/*),$(if $(wildcard $(f)/.),$(call rfiles,$(f)),$(f)))
 PLAT_RES := $(patsubst resources/$(PLATFORM)/%,$(DEV)/%,$(sort $(call rfiles,resources/$(PLATFORM)) \
 	$(if $(filter windows-amd64,$(PLATFORM)),$(CONPTY))))
-TOP_RES  := $(patsubst resources/%,$(DEV)/%,$(filter-out resources/remote resources/%-amd64 resources/%-arm64,$(wildcard resources/*)))
+TOP_RES  := $(patsubst resources/%,$(DEV)/%,$(filter-out resources/remote resources/webshark resources/%-amd64 resources/%-arm64,$(wildcard resources/*)))
 
 # Every step says why it runs, the command, and how long it took; each
 # goal ends with the time since make started. The clock is GNU date's, or
@@ -129,9 +130,9 @@ endif
 $(info [make] goals: $(or $(MAKECMDGOALS),dev) (make $(MAKE_VERSION), $(PLATFORM)))
 $(info [make] app: $(NAME) $(VERSION) ($(IDENT)) -> $(EXE))
 
-.PHONY: dev run release version website website-sync github-release publish icon test vet clean FORCE
+.PHONY: dev run release version website website-sync github-release publish icon test vet clean webshark dev-webshark FORCE
 
-dev: $(EXE) $(DEV_COM) $(DEV)/remote $(PLAT_RES) $(TOP_RES)
+dev: $(EXE) $(DEV_COM) $(DEV)/remote $(PLAT_RES) $(TOP_RES) dev-webshark
 	$(total)
 
 run: dev
@@ -162,7 +163,17 @@ $(DEV)/%: resources/%
 	$(aside)
 	$(call run,mkdir -p $(@D) && cp -p $< $@)
 
-release: version $(CONPTY) $(CLI_COM)
+# webshark's build, which shows packet captures (capture.go), made from a
+# pinned commit with Node by tools/webshark/build.sh into
+# resources/webshark (not in git), at once when it is already that
+# commit's. A release needs it; a dev build without npm goes on without
+# it, and captures then don't open in it.
+webshark:
+	$(call run,sh tools/webshark/build.sh)
+dev-webshark:
+	$(call run,sh tools/webshark/build.sh --soft && if [ -f resources/webshark/COMMIT ] && ! diff -rq resources/webshark $(DEV)/webshark >/dev/null 2>&1; then rm -rf $(DEV)/webshark && cp -R resources/webshark $(DEV)/webshark; fi)
+
+release: version webshark $(CONPTY) $(CLI_COM)
 	$(call run,go tool mygo build)
 	$(total)
 
@@ -177,7 +188,7 @@ version:
 # platform whose published version is older (darwin and linux on the Mac); see
 # tools/website.sh. website-sync publishes it; github-release then makes
 # the version a GitHub release with the installers; publish does all three.
-website: version $(CONPTY) $(CLI_COM)
+website: version webshark $(CONPTY) $(CLI_COM)
 	$(call run,(set -- build $(SITE_ARGS); . ./tools/website.sh))
 	$(total)
 

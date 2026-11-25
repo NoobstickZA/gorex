@@ -201,6 +201,10 @@ func (a *App) glanceFor(p *Pane, file string) *glanceData {
 	about := fileAbout(p.files, file)
 	kind := viewable(file)
 	client := a.client
+	if kind == "capture" {
+		d.loading, d.info = false, about+"\nPacket capture. Click the name above to open it in webshark."
+		return d
+	}
 	if kind == "document" || client == nil {
 		d.loading, d.info = false, about+"\nNo preview. Click the name above to open it."
 		return d

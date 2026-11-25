@@ -3,6 +3,7 @@
 /.mygo/
 mygo_windows_*.syso
 /resources/remote/
+/resources/webshark/
 /resources/windows-amd64/conpty.dll
 /resources/windows-amd64/x64/
 /resources/windows-*/bin/gorex.com

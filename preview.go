@@ -64,8 +64,12 @@ const preloadScript = `document.addEventListener("keydown", (e) => {
 
 // viewable is how the engine shows a file by its name: "image" in
 // GoRex's viewer page, "document" by the engine itself (PDF, HTML,
-// video, audio), or "" for the editor's text check.
+// video, audio), "capture" in webshark (capture.go), or "" for the
+// editor's text check.
 func viewable(name string) string {
+	if isCapture(name) {
+		return "capture"
+	}
 	switch strings.ToLower(path.Ext(strings.ReplaceAll(name, `\`, "/"))) {
 	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif", ".ico", ".svg":
 		return "image"
@@ -135,6 +139,7 @@ func (a *App) registerProtocols() {
 		http.ServeFileFS(w, r, assets, name)
 	})
 	mygo.Protocol.HandleFunc("gorex-file", a.serveHostFile)
+	mygo.Protocol.HandleFunc("gorex-shark", a.serveShark)
 }
 
 // serveHostFile answers a gorex-file request with the host's file, read
@@ -336,7 +341,8 @@ func (a *App) makeWebView(e *fileView) *previewState {
 			})
 			return
 		}
-		if !ev.UserInitiated {
+		if !ev.UserInitiated || strings.HasPrefix(ev.URL, sharkOrigin+"/") {
+			// The page's own, or webshark's moving within itself.
 			return
 		}
 		ev.PreventDefault()
@@ -410,16 +416,19 @@ func (a *App) showFile(e *fileView, path string) {
 func (a *App) showInPage(pv *previewState, path string) {
 	pv.showing, pv.title, pv.phase = path, "", ""
 	page := pv.web.Page()
-	if viewable(path) == "image" {
+	switch viewable(path) {
+	case "image":
 		html, _ := previewAssets.ReadFile("assets/preview/view.html")
 		src, _ := json.Marshal(strings.TrimPrefix(fileURL(path), "gorex-file://localhost"))
 		name, _ := json.Marshal(baseName(path))
 		doc := strings.ReplaceAll(string(html), "gorex-asset://localhost", assetOrigin)
 		doc = strings.Replace(doc, "/*gorex-file*/", "gorexShow("+string(src)+", "+string(name)+", "+hexOfJSON(a.k.bgBottom)+", "+hexOfJSON(a.k.text)+");", 1)
 		page.LoadHTML(doc, "gorex-file://localhost/")
-		return
+	case "capture":
+		page.LoadURL(sharkURL(path))
+	default:
+		page.LoadURL(fileURL(path))
 	}
-	page.LoadURL(fileURL(path))
 }
 
 func hexOfJSON(c ui.Color) string {
