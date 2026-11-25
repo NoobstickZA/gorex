@@ -86,11 +86,31 @@ func (a *App) tabItem(c *ui.Context, k *colors, i int, t *Tab, width float32) {
 	}
 	e.Transition(ui.ElementTransition{Colors: true, Position: true, Duration: 160 * time.Millisecond})
 	e.Drag(t)
-	if dragged, ok := ui.Drop[*Tab](e); ok && dragged != t {
-		a.moveTab(dragged, i)
+	// A tab takes tabs, to move them here, and panes, to move them into
+	// it; one element takes one type, so both come as any.
+	if dropped, ok := ui.Drop[any](e); ok {
+		switch d := dropped.(type) {
+		case *Tab:
+			if d != t {
+				a.moveTab(d, i)
+			}
+		case *Pane:
+			a.later(c, func() { a.dropOnTab(d, t) })
+		}
 	}
-	if _, over := ui.DragOver[*Tab](e); over {
+	over, _ := ui.DragOver[any](e)
+	switch d := over.(type) {
+	case *Tab:
 		e.Border(1.5, k.busy.Alpha(0.6))
+	case *Pane:
+		a.drag.seen = a.frame
+		if canMoveTo(d, t) {
+			e.Border(1.5, dropColor.Alpha(0.8))
+			a.hoverTab(c, i, t)
+		}
+	}
+	if d, _ := over.(*Pane); (d == nil || !canMoveTo(d, t)) && a.drag.hover.tab == t {
+		a.drag.hover = tabHover{}
 	}
 	if e.Dragging() {
 		e.Opacity(0.4)

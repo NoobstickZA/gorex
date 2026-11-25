@@ -9,6 +9,11 @@ to build. It also refuses to build a version that is already published.
 - A terminal pane's header has a Show Files button beside Split Right,
   which opens or closes the tab's file panel, as Ctrl+Shift+E (⇧⌘E on
   macOS) does.
+- Drag a pane by its header to move it: onto a side of another pane to
+  split it, onto its middle to swap them, onto the edge of the tab to take
+  a whole side, or onto a side of its own place to split it. The panes
+  move aside as you drag, to show where it will land. Hold it over another
+  tab to open that tab and drop it there.
 
 ## 0.1.18
 

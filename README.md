@@ -44,6 +44,13 @@ To install omp: `curl -fsSL https://omp.sh/install | sh` (on Windows:
   pane, and has buttons to split right, split down, zoom and close.
   - Drag the gaps between panes to resize them.
   - Double-click a gap to reset the split to half and half.
+  - Drag a pane by its header to move it. While you drag, the panes move
+    aside to show where it will land. Drop it on an edge of another pane
+    to take that half, on its middle to swap the two, or on the edge of
+    the tab to take a strip along that whole side. Drop it on an edge of
+    its own place to split it, with a new pane in the other half.
+  - Hold a dragged pane over another tab to open that tab, and drop it
+    there. Escape gives up the drag.
 - **Persistent sessions.** Shells run in a session server. This is a
   background process of the same binary (`GoRex -server`).
   - When you quit GoRex, everything keeps running. When you open it again,
@@ -459,6 +466,7 @@ sides and bottom, but not from its top.
 | `plain.go`, `fallback.go`, `hostedit.go` | plain ssh hosts; what a window does when GoRex's server can't run; the host dialog |
 | `serialhost.go`, `serialedit.go` | serial hosts: their windows, Send Break and Release Port; the serial port part of the host dialog |
 | `state.go` | tabs, the tree of splits, panes, saving and restoring the layout |
+| `pane_drag.go` | dragging a pane by its header: where it would land, the live preview, moving it |
 | `editor.go`, `browser_view.go`, `editor_view.go` | editor tabs: the file browser, editor panes, opening, saving, what survives a reconnect |
 | `view.go`, `tabs.go`, `host.go`, `commands.go` | the interface: title bar, tabs, panes, host popover, menus and palette |
 | `programs.go` | how programs are shown: names, glyphs, tile colors |

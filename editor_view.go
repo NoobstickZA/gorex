@@ -29,6 +29,9 @@ type fileHost struct {
 	// reveal a folder.
 	open   func(path, fragment string)
 	reveal func(dir string)
+	// pane is the pane the header drags (pane_drag.go), nil for a view
+	// that is no pane, as the file popup.
+	pane *Pane
 }
 
 // fileAction is a button of the place: its tooltip, the command whose
@@ -51,7 +54,7 @@ func (h *fileHost) take() {
 // does; one of an editor tab opens them in the tab, and folders in its
 // browser.
 func (a *App) paneHost(t *Tab, p *Pane, focused, hovered bool) *fileHost {
-	h := &fileHost{focused: focused, hovered: hovered, zoomed: t.Zoom == p}
+	h := &fileHost{focused: focused, hovered: hovered, zoomed: t.Zoom == p, pane: p}
 	h.took = func() {
 		if t.Focus != p {
 			t.setFocus(p)
@@ -109,7 +112,10 @@ func (a *App) fileViewUI(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 func (a *App) fileHeader(c *ui.Context, k *colors, e *fileView, h *fileHost) {
 	name, detail := e.label()
 	row := ui.Row(c).Height(headerH).Padding(0, 8, 0, 12).Gap(7).AlignItems(ui.Center).MinWidth(0)
-	if row.DoubleClicked() && h.zoom.run != nil {
+	if h.pane != nil {
+		a.dragHandle(c, row, h.pane)
+	}
+	if row.DoubleClicked() && h.zoom.run != nil && !a.justDragged(c) {
 		a.later(c, h.zoom.run)
 	}
 	if row.Clicked() {

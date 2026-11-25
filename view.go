@@ -46,6 +46,7 @@ func (a *App) view(c *ui.Context) {
 	focused := a.win == nil || a.win.IsFocused()
 	a.gainedFocus = focused && !a.focusedWin
 	a.focusedWin = focused
+	a.dragGone(c)
 	a.frame++
 	if now := c.Now(); !now.Equal(a.drawnAt) {
 		a.drawn, a.drawnAt = a.drawn+1, now
@@ -92,7 +93,13 @@ func (a *App) view(c *ui.Context) {
 			// with transparent corners goes without.
 			p.Stroke(r, k.cardBorder, round, 1)
 		}
-	}).Children(func() {
+	})
+	if a.drag.dragged != nil {
+		if x, y, in := frame.PointerPosition(); in {
+			frame.DrawOver(func(p *ui.Painter, r ui.Rect) { a.drawHeld(p, r.X+x, r.Y+y) })
+		}
+	}
+	frame.Children(func() {
 		a.titleBar(c, k)
 		ui.Column(c).Grow(1).MinHeight(0).Padding(0, gap, gap, gap).Children(func() {
 			if t := a.tab(); t != nil {
@@ -315,11 +322,13 @@ func (a *App) tabContent(c *ui.Context, k *colors, t *Tab) {
 		a.paneCard(c, k, t, t.Zoom).Grow(1)
 		return
 	}
+	// The tree has the same parent with the files shown or not, for a
+	// pane dragged from one tab to another to keep its elements.
+	box := ui.Row(c.Key("editor-tab")).Grow(1).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch)
 	if !t.showsFiles() {
-		a.node(c, k, t, t.Root).Grow(1)
+		box.Children(func() { a.tree(c, k, t).Grow(1).Basis(0) })
 		return
 	}
-	box := ui.Row(c.Key("editor-tab")).Grow(1).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch)
 	bounds := box.Bounds()
 	ratio := t.BrowserRatio
 	box.Children(func() {
@@ -338,61 +347,86 @@ func (a *App) tabContent(c *ui.Context, k *colors, t *Tab) {
 				p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, k.iconMuted.Alpha(0.6), 1.5)
 			})
 		}
-		a.node(c, k, t, t.Root).Grow(1 - ratio).Basis(0).MinWidth(0).MinHeight(0)
+		a.tree(c, k, t).Grow(1 - ratio).Basis(0)
 	})
 }
 
-// node lays out a node of the tree of splits.
-func (a *App) node(c *ui.Context, k *colors, t *Tab, n *Node) ui.Element {
-	if n.Pane != nil {
-		return a.paneCard(c, k, t, n.Pane)
+// tree lays out the tab's tree of splits: its panes and dividers, placed
+// in one box, as the splits' ratios share it, so that a pane keeps its
+// elements wherever in the tree it goes. While a pane drags over it, it
+// shows the tree as the drop would make it (pane_drag.go).
+func (a *App) tree(c *ui.Context, k *colors, t *Tab) ui.Element {
+	tree := ui.Box(c.Key("tree")).MinWidth(0).MinHeight(0)
+	r := tree.Bounds()
+	// The panes take the box of the frame before: once it changes, as the
+	// window resizes, another frame lays them out in the new one.
+	if r != a.treeBox {
+		a.treeBox = r
+		c.After(time.Millisecond)
 	}
-	var box ui.Element
+	if r.W <= 0 || r.H <= 0 {
+		// Not laid out yet, as in the first frame: the panes come in the
+		// next, at their size rather than at none.
+		return tree
+	}
+	shown := a.treeDrop(c, tree, t, r)
+	var panes []placed
+	var divs []divider
+	shown.place(r, &panes, &divs)
+	tree.Children(func() {
+		for _, pl := range panes {
+			var e ui.Element
+			if pl.pane == nil {
+				e = a.newPaneSlot(c, k, t)
+			} else {
+				e = a.paneCard(c, k, t, pl.pane)
+			}
+			e.Absolute().Left(pl.rect.X - r.X).Top(pl.rect.Y - r.Y).Width(pl.rect.W).Height(pl.rect.H)
+		}
+		for _, d := range divs {
+			a.divider(c, k, d, r)
+		}
+	})
+	return tree
+}
+
+// divider is the bar between the two sides of a split, which drags to
+// share the split anew.
+func (a *App) divider(c *ui.Context, k *colors, d divider, r ui.Rect) {
+	n := d.node
+	if n == nil {
+		return
+	}
+	div := ui.Box(c.Key(n.ID)).Role(ui.RoleSplitter).Label("Divider").
+		Absolute().Left(d.rect.X - r.X).Top(d.rect.Y - r.Y).Width(d.rect.W).Height(d.rect.H)
 	if n.Vertical {
-		box = ui.Column(c.Key(n.ID))
+		div.Cursor(ui.CursorResizeRow)
 	} else {
-		box = ui.Row(c.Key(n.ID))
+		div.Cursor(ui.CursorResizeColumn)
 	}
-	box.MinWidth(0).MinHeight(0).AlignItems(ui.Stretch)
-	bounds := box.Bounds()
-	// The tree may change as its panes build, as a split: build the
-	// children it has now.
-	first, second, ratio := n.A, n.B, n.Ratio
-	box.Children(func() {
-		a.node(c, k, t, first).Grow(ratio).Basis(0).MinWidth(0).MinHeight(0)
-		div := ui.Box(c.Key("divider")).Role(ui.RoleSplitter).Label("Divider")
+	if dx, dy, ok := div.Dragged(); ok {
+		total, by := d.box.W-gap, dx
 		if n.Vertical {
-			div.Height(gap).Cursor(ui.CursorResizeRow)
-		} else {
-			div.Width(gap).Cursor(ui.CursorResizeColumn)
+			total, by = d.box.H-gap, dy
 		}
-		if dx, dy, ok := div.Dragged(); ok {
-			total := bounds.W - gap
-			d := dx
-			if n.Vertical {
-				total, d = bounds.H-gap, dy
-			}
-			if total > 0 {
-				n.Ratio = min(max(n.Ratio+d/total, 0.08), 0.92)
-				a.changed()
-			}
-		}
-		if div.DoubleClicked() {
-			n.Ratio = 0.5
+		if total > 0 {
+			n.Ratio = min(max(n.Ratio+by/total, 0.08), 0.92)
 			a.changed()
 		}
-		if div.Hovered() || div.Dragging() || div.Pressed() {
-			div.Draw(func(p *ui.Painter, r ui.Rect) {
-				if n.Vertical {
-					p.Fill(ui.Rect{X: r.X + r.W/2 - 18, Y: r.Y + r.H/2 - 1.5, W: 36, H: 3}, k.iconMuted.Alpha(0.6), 1.5)
-				} else {
-					p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, k.iconMuted.Alpha(0.6), 1.5)
-				}
-			})
-		}
-		a.node(c, k, t, second).Grow(1 - ratio).Basis(0).MinWidth(0).MinHeight(0)
-	})
-	return box
+	}
+	if div.DoubleClicked() {
+		n.Ratio = 0.5
+		a.changed()
+	}
+	if div.Hovered() || div.Dragging() || div.Pressed() {
+		div.Draw(func(p *ui.Painter, r ui.Rect) {
+			if n.Vertical {
+				p.Fill(ui.Rect{X: r.X + r.W/2 - 18, Y: r.Y + r.H/2 - 1.5, W: 36, H: 3}, k.iconMuted.Alpha(0.6), 1.5)
+			} else {
+				p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, k.iconMuted.Alpha(0.6), 1.5)
+			}
+		})
+	}
 }
 
 // paneCard draws a pane: a card with a header over its terminal.
@@ -407,6 +441,7 @@ func (a *App) paneCard(c *ui.Context, k *colors, t *Tab, p *Pane) ui.Element {
 		Shadow(0, 1, 2, 0, shadow).
 		Shadow(0, 6, 22, -2, shadow)
 	card.Transition(ui.ElementTransition{Colors: true, Duration: 160 * time.Millisecond})
+	a.paneDragLook(card, p)
 	hovered := card.Hovered()
 	card.Children(func() {
 		if p.Kind == paneEditor {
@@ -567,7 +602,8 @@ func (a *App) paneHeader(c *ui.Context, k *colors, t *Tab, p *Pane, focused, hov
 		prog = programOf(p.info.Shell)
 	}
 	h := ui.Row(c).Height(headerH).Padding(0, 8, 0, 12).Gap(7).AlignItems(ui.Center).MinWidth(0)
-	if h.DoubleClicked() {
+	a.dragHandle(c, h, p)
+	if h.DoubleClicked() && !a.justDragged(c) {
 		t.setFocus(p)
 		a.toggleZoom()
 	}

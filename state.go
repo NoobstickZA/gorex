@@ -439,6 +439,10 @@ type App struct {
 	focusedWin   bool
 	lastSnapshot string
 	title        string
+	// drag is a pane being dragged by its header (pane_drag.go).
+	drag paneDragging
+	// treeBox is the box the tab's tree of splits was laid out in last.
+	treeBox ui.Rect
 
 	// frame counts the window's frames, and gainedFocus tells that the
 	// window got the focus in this one: for the panes that start showing
