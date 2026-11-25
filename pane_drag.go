@@ -39,9 +39,6 @@ const (
 	tabSwitchDelay = 700 * time.Millisecond
 )
 
-// dropColor is the color of where a dragged pane would go.
-var dropColor = ui.Hex("#3b82f6")
-
 // paneDrop is where the pane being dragged would go, as the frame that
 // set it saw: a zone of the pane target, or, when outer, the side of
 // target's tree.
@@ -143,8 +140,8 @@ func (a *App) paneDragLook(card ui.Element, p *Pane) {
 	}
 	card.Opacity(0.6)
 	card.DrawOver(func(pt *ui.Painter, r ui.Rect) {
-		pt.Fill(r, dropColor.Alpha(0.16), cardR)
-		pt.Stroke(r, dropColor.Alpha(0.9), cardR, 2)
+		pt.Fill(r, a.k.busy.Alpha(0.16), cardR)
+		pt.Stroke(r, a.k.busy.Alpha(0.9), cardR, 2)
 	})
 }
 
@@ -610,7 +607,7 @@ func (a *App) drawHeld(p *ui.Painter, x, y float32) {
 		return
 	}
 	p.Fill(r, k.cardFocused.Alpha(0.55), cardR)
-	p.Stroke(r, dropColor.Alpha(0.6), cardR, 1.5)
+	p.Stroke(r, k.busy.Alpha(0.6), cardR, 1.5)
 	p.Fill(ui.Rect{X: r.X + 1, Y: r.Y + headerH, W: r.W - 2, H: 1}, k.cardBorder, 0)
 	label := ui.Span{Text: a.drag.title, Size: 12.5, Weight: 600, Color: k.text.Alpha(0.8)}
 	_, h := p.MeasureText(0, label)

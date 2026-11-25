@@ -355,24 +355,29 @@ func (a *App) tabContent(c *ui.Context, k *colors, t *Tab) {
 // in one box, as the splits' ratios share it, so that a pane keeps its
 // elements wherever in the tree it goes. While a pane drags over it, it
 // shows the tree as the drop would make it (pane_drag.go).
+//
+// The splits are laid out in the box of the frame before, and placed in
+// percent of it: as the box changes, as the window resizes or the file
+// panel opens, the panes fill it in the same frame, and only the gaps
+// between them are a frame late, until the next lays them out anew.
 func (a *App) tree(c *ui.Context, k *colors, t *Tab) ui.Element {
 	tree := ui.Box(c.Key("tree")).MinWidth(0).MinHeight(0)
 	r := tree.Bounds()
-	// The panes take the box of the frame before: once it changes, as the
-	// window resizes, another frame lays them out in the new one.
 	if r != a.treeBox {
 		a.treeBox = r
 		c.After(time.Millisecond)
 	}
+	shown, box := copyLayout(t.Root), r
 	if r.W <= 0 || r.H <= 0 {
-		// Not laid out yet, as in the first frame: the panes come in the
-		// next, at their size rather than at none.
-		return tree
+		// Not laid out yet, as in the first frame: the panes take their
+		// shares of a box of any size, which fill the tree all the same.
+		box = ui.Rect{W: 1000, H: 1000}
+	} else {
+		shown = a.treeDrop(c, tree, t, r)
 	}
-	shown := a.treeDrop(c, tree, t, r)
 	var panes []placed
 	var divs []divider
-	shown.place(r, &panes, &divs)
+	shown.place(box, &panes, &divs)
 	tree.Children(func() {
 		for _, pl := range panes {
 			var e ui.Element
@@ -381,24 +386,30 @@ func (a *App) tree(c *ui.Context, k *colors, t *Tab) ui.Element {
 			} else {
 				e = a.paneCard(c, k, t, pl.pane)
 			}
-			e.Absolute().Left(pl.rect.X - r.X).Top(pl.rect.Y - r.Y).Width(pl.rect.W).Height(pl.rect.H)
+			placeIn(e, pl.rect, box)
 		}
 		for _, d := range divs {
-			a.divider(c, k, d, r)
+			a.divider(c, k, d, box)
 		}
 	})
 	return tree
 }
 
+// placeIn places e at r, in percent of box, which its parent fills.
+func placeIn(e ui.Element, r, box ui.Rect) {
+	e.Absolute().LeftPercent((r.X - box.X) / box.W * 100).TopPercent((r.Y - box.Y) / box.H * 100).
+		WidthPercent(r.W / box.W * 100).HeightPercent(r.H / box.H * 100)
+}
+
 // divider is the bar between the two sides of a split, which drags to
 // share the split anew.
-func (a *App) divider(c *ui.Context, k *colors, d divider, r ui.Rect) {
+func (a *App) divider(c *ui.Context, k *colors, d divider, box ui.Rect) {
 	n := d.node
 	if n == nil {
 		return
 	}
-	div := ui.Box(c.Key(n.ID)).Role(ui.RoleSplitter).Label("Divider").
-		Absolute().Left(d.rect.X - r.X).Top(d.rect.Y - r.Y).Width(d.rect.W).Height(d.rect.H)
+	div := ui.Box(c.Key(n.ID)).Role(ui.RoleSplitter).Label("Divider")
+	placeIn(div, d.rect, box)
 	if n.Vertical {
 		div.Cursor(ui.CursorResizeRow)
 	} else {

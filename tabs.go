@@ -105,7 +105,7 @@ func (a *App) tabItem(c *ui.Context, k *colors, i int, t *Tab, width float32) {
 	case *Pane:
 		a.drag.seen = a.frame
 		if canMoveTo(d, t) {
-			e.Border(1.5, dropColor.Alpha(0.8))
+			e.Border(1.5, k.busy.Alpha(0.8))
 			a.hoverTab(c, i, t)
 		}
 	}
