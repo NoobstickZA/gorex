@@ -33,7 +33,10 @@ trap 'rm -rf "$work"' EXIT
 
 git clone -q "$REPO" "$work/webshark"
 git -C "$work/webshark" checkout -q "$COMMIT"
-npm --prefix "$work/webshark/ui" ci --no-audit --no-fund
+# install, not ci: npm 11.20's ci refuses webshark's lock file, whose
+# name for the package is not the package's; install keeps the versions
+# it locks.
+npm --prefix "$work/webshark/ui" install --no-audit --no-fund
 npm --prefix "$work/webshark/ui" run build:kiosk
 
 rm -rf "$out"
