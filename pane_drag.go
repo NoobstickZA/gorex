@@ -72,8 +72,9 @@ type paneDragging struct {
 	// frame.
 	tree  ui.Rect
 	hover tabHover
-	// grab is where the pointer took the dragged pane's header, size the
-	// pane's size then, and title its name, for the copy of it held.
+	// grab is where the pointer took held's header, size the pane's size
+	// then, and title its name, for the copy of it held.
+	held  *Pane
 	grab  ui.Point
 	size  ui.Rect
 	title string
@@ -90,7 +91,7 @@ type paneDragging struct {
 // header never saw it end.
 func (a *App) dragGone(c *ui.Context) {
 	if a.drag.dragged != nil && a.drag.seen != a.frame {
-		a.drag.dragged, a.drag.ended = nil, c.Now()
+		a.drag.dragged, a.drag.held, a.drag.ended = nil, nil, c.Now()
 	}
 }
 
@@ -102,13 +103,10 @@ func (a *App) justDragged(c *ui.Context) bool {
 	return a.drag.dragged != nil || c.Now().Sub(a.drag.ended) < dragSettle
 }
 
-// canMoveTo reports whether pane p may go into tab t: a terminal only
-// into a terminal tab, and a file browser nowhere.
+// canMoveTo reports whether pane p may go into tab t: any pane but a file
+// browser.
 func canMoveTo(p *Pane, t *Tab) bool {
-	if p == nil || t == nil || p.Kind == paneBrowser {
-		return false
-	}
-	return p.Kind != paneTerminal || t.Kind == paneTerminal
+	return p != nil && t != nil && p.Kind != paneBrowser
 }
 
 // dragHandle makes e, a pane's header, drag the pane.
@@ -118,9 +116,10 @@ func (a *App) dragHandle(c *ui.Context, e ui.Element, p *Pane) {
 	}
 	e.Drag(p)
 	if e.Dragging() {
-		if a.drag.dragged != p {
+		if a.drag.held != p {
 			x, y, _ := e.PointerPosition()
-			a.drag.grab, a.drag.size = ui.Point{X: x, Y: y}, p.bounds
+			x, y = min(max(x, 0), p.bounds.W), min(max(y, 0), headerH)
+			a.drag.held, a.drag.grab, a.drag.size = p, ui.Point{X: x, Y: y}, p.bounds
 			a.drag.title, _ = p.label()
 		}
 		a.drag.dragged, a.drag.seen = p, a.frame
@@ -128,7 +127,7 @@ func (a *App) dragHandle(c *ui.Context, e ui.Element, p *Pane) {
 		// nothing: drawHeld draws the pane held instead.
 		e.Invisible()
 	} else if a.drag.dragged == p {
-		a.drag.dragged, a.drag.ended = nil, c.Now()
+		a.drag.dragged, a.drag.held, a.drag.ended = nil, nil, c.Now()
 	}
 }
 
@@ -597,7 +596,7 @@ var heldMax = ui.Rect{W: 420, H: 280}
 // drawHeld draws a light copy of the pane being dragged where the
 // pointer, at (x, y) in the window, holds it by its header.
 func (a *App) drawHeld(p *ui.Painter, x, y float32) {
-	if a.drag.dragged == nil {
+	if a.drag.dragged == nil || a.drag.held != a.drag.dragged {
 		return
 	}
 	k, sz := a.k, a.drag.size

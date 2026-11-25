@@ -80,7 +80,7 @@ func (a *App) paneHost(t *Tab, p *Pane, focused, hovered bool) *fileHost {
 	}
 	h.open = func(path, fragment string) {
 		a.openFile(t, path, false)
-		if np := t.treeFocus(); np != nil && np.edit.path == path && isMarkdown(path) {
+		if np := t.treeFocus(); np != nil && np.Kind == paneEditor && np.edit.path == path && isMarkdown(path) {
 			a.previewWhenLoaded(np.edit, fragment)
 		}
 	}

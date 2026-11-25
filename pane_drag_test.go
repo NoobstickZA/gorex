@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -36,6 +37,9 @@ func dragPane(tt *ui.Tester, a *App, p *Pane, x, y float32) ui.Rect {
 	}
 	if shown.W > 0 && (x < shown.X || x > shown.X+shown.W || y < shown.Y || y > shown.Y+shown.H) {
 		panic(fmt.Sprintf("the box %+v is not under the pointer at %v,%v", shown, x, y))
+	}
+	if a.drag.held != p || a.drag.size.W <= 0 {
+		panic(fmt.Sprintf("no copy of the pane held: held %v, size %+v", a.drag.held == p, a.drag.size))
 	}
 	lastLive = map[*Pane]ui.Rect{}
 	for _, t := range a.tabs {
@@ -310,6 +314,73 @@ func TestDragPaneToAnotherTab(t *testing.T) {
 }
 
 // A drag given up in another tab, its pane out of sight there, ends.
+func TestDragTerminalIntoEditorTab(t *testing.T) {
+	a, tt, _, right := twoPanes(t)
+	root := testDir(t)
+	defer os.RemoveAll(root)
+	os.WriteFile(filepath.Join(root, "notes.txt"), []byte("hello\n"), 0o644)
+	ed := a.newEditorTab(root)
+	editor := ed.Root.Pane
+	a.selectTab(0)
+	tt.Frame()
+	tt.Frame()
+	track, ok := tt.Find("Tabs")
+	if !ok {
+		t.Fatal("no tab bar")
+	}
+	b := right.bounds
+	sx, sy := b.X+40, b.Y+headerH/2
+	tx, ty := track.X+track.W*0.75, track.Y+track.H/2
+	tt.Press(sx, sy)
+	tt.Frame()
+	for i := 1; i <= 6; i++ {
+		f := float32(i) / 6
+		tt.Move(sx+(tx-sx)*f, sy+(ty-sy)*f)
+		tt.Frame()
+	}
+	tt.Advance(tabSwitchDelay + 100*time.Millisecond)
+	tt.Frame()
+	if a.tab() != ed {
+		t.Fatal("holding a terminal over an editor tab did not open it")
+	}
+	tt.Frame()
+	eb := editor.bounds
+	x, y := eb.X+eb.W*0.15+treeEdge, eb.Y+eb.H/2
+	tt.Move(x, y-20)
+	tt.Frame()
+	tt.Move(x, y)
+	tt.Frame()
+	tt.Release(x, y)
+	tt.Frame()
+	tt.Frame()
+	if right.Tab != ed || ed.Root.A.Pane != right || ed.Root.B.Pane != editor {
+		t.Fatalf("the terminal did not move to the left of the editor: tab %v", right.Tab == ed)
+	}
+	// With the terminal focused, a file opens in an editor beside it.
+	ed.setFocus(right)
+	a.openFile(ed, filepath.Join(root, "notes.txt"), false)
+	tt.Frame()
+	if right.Kind != paneTerminal || ed.treeFocus().Kind != paneEditor || ed.treeFocus().edit.path != filepath.Join(root, "notes.txt") {
+		t.Error("opening a file with the terminal focused did not open it in an editor")
+	}
+	var term *savedNode
+	var find func(s *savedNode)
+	find = func(s *savedNode) {
+		if s == nil {
+			return
+		}
+		if s.SID != "" && s.SID == right.SID {
+			term = s
+		}
+		find(s.A)
+		find(s.B)
+	}
+	find(a.snapshot().Tabs[1].Root)
+	if term == nil || !term.Term {
+		t.Errorf("the terminal of the editor tab is not saved as one: %+v", term)
+	}
+}
+
 func TestDragGivenUpInAnotherTab(t *testing.T) {
 	a, tt, _, right := twoPanes(t)
 	first := a.tab()

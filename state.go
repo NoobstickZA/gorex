@@ -1439,6 +1439,9 @@ type savedNode struct {
 	// Path and Mode are an editor pane's file and "editor" or "changes".
 	Path     string     `json:"path,omitempty"`
 	Mode     string     `json:"mode,omitempty"`
+	// Term is a terminal of an editor tab, whose panes are otherwise
+	// editors.
+	Term     bool       `json:"term,omitempty"`
 	Vertical bool       `json:"vertical,omitempty"`
 	Ratio    float32    `json:"ratio,omitempty"`
 	A        *savedNode `json:"a,omitempty"`
@@ -1453,7 +1456,7 @@ func (a *App) snapshot() savedLayout {
 			if p.Kind == paneEditor {
 				return &savedNode{Path: p.edit.path, Mode: p.edit.mode}
 			}
-			s := &savedNode{SID: p.SID, Dir: p.info.Dir}
+			s := &savedNode{SID: p.SID, Dir: p.info.Dir, Term: p.Tab.Kind == paneEditor}
 			if s.Dir == "" {
 				s.Dir = p.startDir
 			}
@@ -1526,7 +1529,7 @@ func (a *App) restore() bool {
 		if s.A == nil || s.B == nil {
 			var p *Pane
 			switch {
-			case t.Kind == paneEditor || s.Path != "":
+			case t.Kind == paneEditor && !s.Term || s.Path != "":
 				// An editor: of an editor tab, or a file kept beside a
 				// terminal (Keep in the file popup).
 				p = a.newEditorPane(s.Path)

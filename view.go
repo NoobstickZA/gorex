@@ -143,7 +143,7 @@ func (a *App) view(c *ui.Context) {
 		if t := a.tab(); t != nil {
 			if mode != "host" {
 				name, detail := t.label()
-				if f := t.treeFocus(); t.Kind == paneEditor && f != nil && f.edit.path != "" {
+				if f := t.treeFocus(); t.Kind == paneEditor && f != nil && f.Kind == paneEditor && f.edit.path != "" {
 					name, detail = f.edit.label()
 				}
 				parts = append(parts, strings.TrimSpace(name+" "+detail))

@@ -367,7 +367,7 @@ func (a *App) openFile(t *Tab, path string, split bool) {
 	if target == nil {
 		return
 	}
-	if split || target.edit.modified() || target.edit.path != "" && target.edit.loading {
+	if split || target.Kind != paneEditor || target.edit.modified() || target.edit.path != "" && target.edit.loading {
 		target = a.splitPane(target, false)
 	}
 	// The pane's page stays for the next Markdown file, or one the
@@ -577,7 +577,7 @@ func (a *App) adoptKeptEdits() {
 		delete(a.keptEdits, path)
 		kept.elsewhere = true
 		target := t.treeFocus()
-		if target.edit.path != "" {
+		if target.Kind != paneEditor || target.edit.path != "" {
 			target = a.splitPane(target, false)
 		}
 		target.edit.gone = true
